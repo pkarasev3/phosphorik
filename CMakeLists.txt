@@ -1,7 +1,6 @@
-# VTK examples now require CMake 2.0 or higher.
-CMAKE_MINIMUM_REQUIRED(VERSION 2.6)
+CMAKE_MINIMUM_REQUIRED(VERSION 2.8)
 
-PROJECT( SmokeSim )
+PROJECT( phosphorik )
 FIND_PACKAGE(OpenCV REQUIRED)
 find_package(OpenGL REQUIRED)
 Find_Package(SDL REQUIRED) 
