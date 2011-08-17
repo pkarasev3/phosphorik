@@ -1,1 +1,6 @@
 initilized from: http://graphics.ethz.ch/teaching/former/imagesynthesis_06/miniprojects/p3/index.html
+
+Running it, from bin folder: 
+1) needs image_0003.bmp, image_0004.bmp, and fire.fp (TODO- get rid of this nonsense)
+2) ./fire32-demo -w output.dat
+3) hit escape to stop and save the frames. pause/resume with spacebar. 
