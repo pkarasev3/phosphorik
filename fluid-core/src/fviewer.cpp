@@ -185,7 +185,8 @@ FViewer::FViewer(const std::vector<std::string> & texNames)
 	gen_ray_templ(N+2);
 
   this->image_textures.clear();
-  for( size_t k = 0; k < texNames.size(); k++ ) { // assign the textures
+  for( size_t k = 0; k < texNames.size(); k++ )
+  { // assign the textures
     char* cstrName = (char*) malloc( sizeof(char) * texNames[k].size() + 1 );
     memcpy( cstrName, texNames[k].c_str(), sizeof(char) *(texNames[k].size()));
     cstrName[texNames[k].size()] = 0;
@@ -386,6 +387,8 @@ void FViewer::draw(void)
 
 void FViewer::draw_cube(void)
 {
+  return; // TODO: verify we can axe it here.
+
 	glDisable(GL_TEXTURE_3D);
 	glDisable(GL_FRAGMENT_PROGRAM_ARB);
 

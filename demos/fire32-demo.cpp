@@ -54,7 +54,7 @@ enum Mode { SIMULATE, PLAY };
 Mode mode;
 bool bSaveOutput = false;
 
-bool paused = true, quitting = false, redraw = false, update = false, wasupdate = false;;
+bool paused = true, quitting = false, redraw = false, update = false, wasupdate = false;
 
 int EventLoop(FILE* fp);
 
@@ -98,11 +98,8 @@ void SaveBufferToImage( int w, int h, const std::string & strFilename ) {
 
 void error(const char* str)
 {
-#ifdef WIN32
-	MessageBox(NULL, str, "Error", MB_OK | MB_ICONSTOP);
-#else
 	printf("Error: %s/n", str);
-#endif
+
 }
 
 bool init(void)
@@ -142,11 +139,8 @@ bool init(void)
 
 
 	/* Viewer */
-  std::vector<std::string> strNames(2);
-  strNames[0] = strName1;
-  strNames[1] = strName2;
-
-  viewer = new FViewer(strNames);
+  std::vector<std::string> strNames(0);
+  viewer = new FViewer( strNames );
 
 	viewer->viewport(screen->w, screen->h);
 
@@ -159,19 +153,19 @@ int simulate(void* )
 {
   assert(fluid != NULL);
 
-  float dt = 0.1;
+  float dt = 0.1; // TODO: Param
   float f;
 
   while (!quitting)
   {
     if (!paused && !update) {
-      for (int i=6; i<26; i++)
+      for (int i=6; i<26; i++) // TODO: Param, relative to N !?
       {
-        for (int j=6; j<26; j++)
+        for (int j=6; j<26; j++) // TODO: Param, relative to N !?
         {
-          f = genfunc(i-6,j-6,24-6,24-6,t,gfparams);
-          fluid->sd[_I(i,28,j)] = 1.0f;
-          fluid->sT[_I(i,28,j)] = (float)(rand()%100)/50.0f + f *10.0f;
+          f = genfunc(i-6,j-6,24-6,24-6,t,gfparams);  // TODO: Param, relative to N !?
+          fluid->sd[_I(i,28,j)] = 1.0f; // TODO: Param, relative to N !?
+          fluid->sT[_I(i,28,j)] = (float)(rand()%100)/50.0f + f *10.0f; // TODO: Param, relative to N !?
         }
       }
 

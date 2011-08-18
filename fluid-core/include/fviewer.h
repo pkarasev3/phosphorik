@@ -57,13 +57,9 @@ private:
 	void init_GL(void);
 	bool init_font(void);
 
-  Fluid* _fluid;
-
 public:
   FViewer(const std::vector<std::string> & texNames);
   ~FViewer();
-
-  void SetFluid( Fluid* new_fluid) { _fluid = new_fluid; }
 
   void rotate_light(int x, int y);		// set light orientation according to given coordinates (trackball)
 	bool _draw_cube, _draw_slice_outline;
