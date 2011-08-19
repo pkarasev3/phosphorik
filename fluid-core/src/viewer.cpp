@@ -185,7 +185,7 @@ Viewer::Viewer( std::vector<std::string> & texNames )
 	_light_dir[0] = 0.0f;
 	_light_dir[1] = 1.0f;
 	_light_dir[2] = -1.0f;
-	gen_ray_templ(N+2);
+  gen_ray_templ(Fluid::N()+2);
 
         /*this->texture1 = LoadTextureRAW( "texture1.raw",256,256 );
         this->texture2 = LoadTextureRAW( "texture2.raw",128,128 ); */
@@ -608,13 +608,15 @@ void Viewer::load_frame(void)
 void Viewer::frame_from_sim(Fluid* fluid)
 {
 	if (_texture_data == NULL)
-		_texture_data = (unsigned char*) malloc((N+2)*(N+2)*(N+2)*4);
+    _texture_data = (unsigned char*) malloc(fluid->Size()*4);
 
-	unsigned char* l = (unsigned char*) malloc((N+2)*(N+2)*(N+2));
-	memset(l,0,(N+2)*(N+2)*(N+2));
-	cast_light(N+2, fluid->d, l);
+  unsigned char* l = (unsigned char*) malloc(fluid->Size());
+  int npts = Fluid::N()+2;
+  memset(l,0,fluid->Size());
+  cast_light(npts, fluid->d, l);
 
-	for (int i=0; i<(N+2)*(N+2)*(N+2); i++) {
+  int num_grid_pts = fluid->Size();
+  for (int i=0; i<num_grid_pts; i++) {
 		unsigned char c = l[i];
 		_texture_data[(i<<2)] = c;
 		_texture_data[(i<<2)+1] = c;
@@ -625,7 +627,7 @@ void Viewer::frame_from_sim(Fluid* fluid)
 	free(l);
 
 	glActiveTextureARB(GL_TEXTURE0_ARB);
-	glTexImage3D(GL_TEXTURE_3D, 0, GL_RGBA, N+2, N+2, N+2, 0, GL_RGBA, GL_UNSIGNED_BYTE, _texture_data);
+  glTexImage3D(GL_TEXTURE_3D, 0, GL_RGBA, npts, npts, npts, 0, GL_RGBA, GL_UNSIGNED_BYTE, _texture_data);
 }
 
 #define ALMOST_EQUAL(a, b) ((fabs(a-b)<0.00001f)?true:false)
@@ -727,7 +729,7 @@ void Viewer::cast_light(int n /*edgelen*/, float* dens, unsigned char* intensity
 }
 
 
-#define AMBIENT 100
+#define AMBIENT 3
 inline void Viewer::light_ray(int x, int y, int z, int n, float decay, float* dens, unsigned char* intensity)
 {
 	int xx = x, yy = y, zz = z, i = 0;

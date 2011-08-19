@@ -17,13 +17,7 @@
 // 'getopt' for argument parsing
 #include "getopt_pp_standalone.h"
 
-#ifdef WIN32
-#include <windows.h>
-#endif
-
 using namespace std;
-std::string strName1;
-std::string strName2;
 #include <SDL.h>
 #include <SDL_thread.h>
 #include <GL/gl.h>
@@ -132,10 +126,10 @@ bool init(void)
 
   fluid = new Fluid();
   fluid->diffusion = 0.00001f;
-  fluid->viscosity = 0.000f;
-  fluid->buoyancy  = 1.5f;
-  fluid->cooling   = 1.0f;
-  fluid->vc_eps    = 4.0f;
+  fluid->viscosity = 0.00000f; // 0
+  fluid->buoyancy  = 1.5f;   // 1.5
+  fluid->cooling   = 1.0f;   // 1.0
+  fluid->vc_eps    = 1.0f;   // 4.0
 
 
 	/* Viewer */
@@ -158,14 +152,26 @@ int simulate(void* )
 
   while (!quitting)
   {
-    if (!paused && !update) {
-      for (int i=6; i<26; i++) // TODO: Param, relative to N !?
+    if (!paused && !update)
+    {
+      cout << "updating ... t = " << t << endl;
+      int idxStart = 12;
+      int idxStop  = Fluid::N()+2-idxStart;
+      for (int i=idxStart; i<idxStop; i++) // TODO: Param, relative to N !?
       {
-        for (int j=6; j<26; j++) // TODO: Param, relative to N !?
+        for (int j=idxStart; j<idxStop; j++) // TODO: Param, relative to N !?
         {
-          f = genfunc(i-6,j-6,24-6,24-6,t,gfparams);  // TODO: Param, relative to N !?
-          fluid->sd[_I(i,28,j)] = 1.0f; // TODO: Param, relative to N !?
-          fluid->sT[_I(i,28,j)] = (float)(rand()%100)/50.0f + f *10.0f; // TODO: Param, relative to N !?
+          f = genfunc(i-idxStart,j-idxStart,
+                      idxStop-idxStart,idxStop-idxStart,
+                      t,gfparams);
+          double vs = (sin(t*CV_PI*1.3));
+          double us = (cos(t*CV_PI*1.2));
+          fluid->sT[_I(i,idxStop+2,j)] = 3*(((float)(rand()%100)/50.0f + f *5.0f));
+          fluid->sd[_I(i,idxStop+2,j)] = 1.0f;
+          fluid->su[_I(i,idxStop+2,j)] = us * fluid->sT[_I(i,idxStop+2,j)];
+          fluid->sv[_I(i,idxStop+2,j)] = -abs(us)-abs(vs)-2;
+          fluid->sw[_I(i,idxStop+2,j)] = vs * fluid->sT[_I(i,idxStop+2,j)];
+
         }
       }
 
@@ -343,18 +349,8 @@ int main(int argc, char* argv[])
 #endif
 
   GetOpt_pp ops(argc, argv);
-  std::string str1 = "image003.bmp";
-  std::string str2 = "image004.bmp";;
-  ops >> Option('a', "texture1", str1);
-  ops >> Option('b', "texture2", str2);
+
   ops >> OptionPresent( 's', "saveImages", bSaveOutput );
-
-  strName1 = str1;
-  strName2 = str2;
-
-  cout<<"strName1:"<<strName1<<endl;
-  cout<<"strName2: "<<strName2<<endl;
-
 
 	char str[256];
 	FILE *fp = NULL;
@@ -406,7 +402,7 @@ int main(int argc, char* argv[])
 
 	if (fp && (mode == SIMULATE))	{
 		int pos;
-		h[0] = h[1] = N+2;
+    h[0] = h[1] = Fluid::N()+2;
 		h[2] = simframes;
 		pos = ftell(fp);
 		fseek(fp, 0, SEEK_SET);

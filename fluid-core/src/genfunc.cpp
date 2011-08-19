@@ -15,10 +15,8 @@ float* randfloats(int n)
 	for (i=0; i<n; i++)
 	{
 		v[i] = (rand()%1000)/1000.0f;
-/*		if (i<10)
-			printf("%.3f ", v[i]);*/
 	}
-//	printf("\n");
+
 	return v;
 }
 

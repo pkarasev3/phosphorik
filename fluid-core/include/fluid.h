@@ -1,32 +1,41 @@
 /* Author: Johannes Schmid, 2006, johnny@grob.org */
+/* 2011 Updatess: Peter Karasev, karasevpa@gmail.com */
+
 #ifndef __FLUID_H
 #define __FLUID_H
 
 #include <stdio.h>
 
-// *** CRAZY !?!?! Going to break stuff with "N" that includes this header...?
-#define N 62				// must be N^2-2
-
-
-#define SIZE ((N+2)*(N+2)*(N+2))
-//#define _I(x,y,z) (((z)<<10)+((y)<<5)+x)
+/** Indexing lookup. e.g., used as:
+    vorticity_x[ _I(i+1,j,k) ] to get right-of-i,j,k
+    smaller number is log2(N()), larger is 2 times that */
 #define _I(x,y,z) (((z)<<12)+((y)<<6)+x)
 
 #define SWAPFPTR(x,y) {float *t=x;x=y;y=t;}
 
 class Fluid
 {
-protected:
+public:
+  static int N() {
+    return 62; // #define N 62				// must be N^2-2
+  }
+
+  struct SimParams;
+  SimParams* simParms;
 
 public:
-  float buffers[10][SIZE];
+  void init_with_args( int argc, char* argv[] );
+
+  float buffers[10][64*64*64];
 	float *d, *d0;			// density
 	float *u, *u0;			// velocity in x direction
 	float *v, *v0;			// velocity in y direction
 	float *w, *w0;			// velocity in z direction
   float *T, *T0;			// temperature
 
+  int Size() ;
 protected:
+
 	// simulation methods
 		// beware: i changed stam's implementation from a destiation, source ordering
 		// of the parameters to source, destiation
@@ -53,7 +62,7 @@ protected:
 	void clear_sources(void);
 
 public:
-	float sd[SIZE], su[SIZE], sv[SIZE], sw[SIZE], sT[SIZE];	// sources for density and velocities
+  float sd[262144], su[262144], sv[262144], sw[262144], sT[262144];	// sources for density and velocities
   float diffusion, viscosity, buoyancy, cooling, vc_eps;
 
 	Fluid(void);

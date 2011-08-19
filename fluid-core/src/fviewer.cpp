@@ -182,7 +182,7 @@ FViewer::FViewer(const std::vector<std::string> & texNames)
 	_light_dir[0] = -1.0f;
 	_light_dir[1] = 0.5f;
 	_light_dir[2] = 0.0f;
-	gen_ray_templ(N+2);
+  gen_ray_templ(Fluid::N()+2);
 
   this->image_textures.clear();
   for( size_t k = 0; k < texNames.size(); k++ )
@@ -236,37 +236,45 @@ void FViewer::init_GL(void)
 	glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_T,GL_REPEAT);
 	glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_R,GL_REPEAT);
 
-#define SPEC_WIDTH 256
+  int spec_width_sqrt = 16;
+  int SPEC_WIDTH      = 256;//spec_width_sqrt * spec_width_sqrt;
+//#define SPEC_WIDTH 256
 	unsigned char* data = (unsigned char*) malloc(SPEC_WIDTH*4);
-	spectrum(1500, 3000, SPEC_WIDTH, data);
+  double minT = 1500;
+  double maxT = 5000;
+  spectrum(minT, maxT, SPEC_WIDTH, data);
 
-	unsigned char* texture = (unsigned char*)malloc(SPEC_WIDTH*4*16*16);
+  unsigned char* texture = (unsigned char*)malloc(SPEC_WIDTH*4* spec_width_sqrt* spec_width_sqrt);
 
-	for (int i=0;i<16;i++){
-	  for (int j=0;j<16;j++) {
+  for (int i=0;i<spec_width_sqrt;i++){
+    for (int j=0;j<spec_width_sqrt;j++) {
 	    for (int k=0;k<SPEC_WIDTH;k++) {
-	      float intensity = float(i)*1.0/16.0;
-	      float density = float(j)*1.0/16.0;
+        float intensity = float(i)*1.0/spec_width_sqrt;
+        float density = float(j)*1.0/spec_width_sqrt;
 	      float temperatur = float(k)*1.0f/float(SPEC_WIDTH);
 
-	      int index = (j*SPEC_WIDTH*16+i*SPEC_WIDTH+k)*4;
+        int index = (j*SPEC_WIDTH*spec_width_sqrt+i*SPEC_WIDTH+k)*4;
 
-#define FIRE_THRESH 7
+#define FIRE_THRESH 1
 	      if (k>=FIRE_THRESH) {
-          texture[index] = (unsigned char)(((float)data[k*4]));
+          texture[index]   = (unsigned char)(((float)data[k*4]));
           texture[index+1] = (unsigned char)(((float)data[k*4+1]));
           texture[index+2] = (unsigned char)(((float)data[k*4+2]));
-#define MAX_FIRE_ALPHA 0.9f
-#define FULL_ON_FIRE 100
-          texture[index+3] = 255*MAX_FIRE_ALPHA*(
-                (k>FULL_ON_FIRE) ? 1.0f : (k-FIRE_THRESH)/((float)FULL_ON_FIRE-FIRE_THRESH));
+#define MAX_FIRE_ALPHA 0.3f
+#define FULL_ON_FIRE 255
+          texture[index+3] = 255 * MAX_FIRE_ALPHA *
+          ( (k>FULL_ON_FIRE) ? 1.0f :
+          (k-FIRE_THRESH)/((float)FULL_ON_FIRE-FIRE_THRESH));
 	      } else {
-          texture[index] = 0;texture[index+1] = 0;texture[index+2] = 0;texture[index+3] = 0;
+          texture[index] = 0;
+          texture[index+1] = 0;
+          texture[index+2] = 0;
+          texture[index+3] = 0;
 	      }
 	    }
 	  }
 	}
-	glTexImage3D(GL_TEXTURE_3D, 0, GL_RGBA, SPEC_WIDTH, 16, 16, 0, GL_RGBA, GL_UNSIGNED_BYTE, texture);
+  glTexImage3D(GL_TEXTURE_3D, 0, GL_RGBA, SPEC_WIDTH, spec_width_sqrt, spec_width_sqrt, 0, GL_RGBA, GL_UNSIGNED_BYTE, texture);
 
 	glGenProgramsARB(1, &_prog[0]);
 	glEnable(GL_FRAGMENT_PROGRAM_ARB);
@@ -674,21 +682,23 @@ void FViewer::rotate_light(int x, int y)
 
 void FViewer::frame_from_sim(Fluid* fluid)
 {
-  // Allocated wrong / what is the loop trying to do !?
+  int num_grid_pts = fluid->Size();
+  int pts_per_side = Fluid::N()+2;
 	if (_texture_data == NULL)
-		_texture_data = (unsigned char*) malloc((N+2)*(N+2)*(N+2)*4);
+    _texture_data = (unsigned char*) malloc(num_grid_pts*4);
 
-	for (int i=0; i<(N+2)*(N+2)*(N+2); i++) {
+  for (int i=0; i<num_grid_pts; i++) {
 		_texture_data[(i<<2)] = (unsigned char) (fluid->T[i] * 255.0f);
 		_texture_data[(i<<2)+1] = (unsigned char) (fluid->d[i] * 255.0f);
 		_texture_data[(i<<2)+2] = 0;
 		_texture_data[(i<<2)+3] = 255;
 	}
 
-	cast_light(N+2);
+  cast_light(Fluid::N()+2);
 
 	glActiveTextureARB(GL_TEXTURE0_ARB);
-	glTexImage3D(GL_TEXTURE_3D, 0, GL_RGBA, N+2, N+2, N+2, 0, GL_RGBA, GL_UNSIGNED_BYTE, _texture_data);
+  glTexImage3D(GL_TEXTURE_3D, 0, GL_RGBA,
+               pts_per_side, pts_per_side, pts_per_side, 0, GL_RGBA, GL_UNSIGNED_BYTE, _texture_data);
 }
 
 #define ALMOST_EQUAL(a, b) ((fabs(a-b)<0.00001f)?true:false)
@@ -769,6 +779,7 @@ void FViewer::gen_ray_templ(int edgelen)
 }
 
 #define DECAY 0.04f
+//#define DECAY 0.01f
 void FViewer::cast_light(int n /*edgelen*/)
 {
 	int i,j;
@@ -790,7 +801,7 @@ void FViewer::cast_light(int n /*edgelen*/)
 }
 
 
-#define AMBIENT 50
+#define AMBIENT 3
 inline void FViewer::light_ray(int x, int y, int z, int n, float decay)
 {
 	int xx = x, yy = y, zz = z, i = 0;
