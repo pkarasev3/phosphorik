@@ -27,7 +27,7 @@ SET( CMAKE_VERBOSE_MAKEFILE on )
 # Common Warning = All On
 # Use pipes instead of temp files (lots of memory on our machines, don't write scrub files!)
 # -g3 means super-high debug info
-set(CMAKE_CXX_FLAGS "-Wall -pipe -g3" CACHE STRING "compiler flags always used" FORCE) # temporary force -g3...
+set(CMAKE_CXX_FLAGS "-Wall -pipe -g3 -fopenmp" CACHE STRING "compiler flags always used" FORCE) # temporary force -g3...
 set(CMAKE_CXX_FLAGS_DEBUG "-g3" CACHE STRING "extra compiler flags for debug" FORCE )
 set(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG" CACHE STRING "extra compiler flags for release" FORCE)
 set(CMAKE_BUILD_TYPE "Debug" CACHE STRING "configuration (default: debug)" )

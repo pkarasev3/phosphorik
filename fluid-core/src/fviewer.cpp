@@ -184,24 +184,7 @@ FViewer::FViewer(const std::vector<std::string> & texNames)
 	_light_dir[2] = 0.0f;
   gen_ray_templ(Fluid::N()+2);
 
-  this->image_textures.clear();
-  for( size_t k = 0; k < texNames.size(); k++ )
-  { // assign the textures
-    char* cstrName = (char*) malloc( sizeof(char) * texNames[k].size() + 1 );
-    memcpy( cstrName, texNames[k].c_str(), sizeof(char) *(texNames[k].size()));
-    cstrName[texNames[k].size()] = 0;
-    std::cout<<"attempting to load file: "<<cstrName<< std::endl;
-    Image* img = loadBMP( cstrName ); //new Image( cstrName, 256, 256 );
-    std::cout<<"load BMP done. "<<endl;
-    image_textures.push_back(img);
-    free( cstrName );
-    if( k == 0 )
-      texture1 = LoadTextureBMP( image_textures[k] );
-    else if( k == 1 )
-      texture2 = LoadTextureBMP( image_textures[k] );
-  }
 
-  theta = 0.0;
 
 }
 
@@ -369,8 +352,6 @@ void FViewer::draw(void)
 
 	glMultMatrixf(&m[0][0]);
 
-  if (_draw_cube)
-		draw_cube();
 	draw_slices(m, _draw_slice_outline);
 
 	if (_dispstring != NULL) {
@@ -393,46 +374,7 @@ void FViewer::draw(void)
 }
 
 
-void FViewer::draw_cube(void)
-{
-  return; // TODO: verify we can axe it here.
 
-	glDisable(GL_TEXTURE_3D);
-	glDisable(GL_FRAGMENT_PROGRAM_ARB);
-
-  glEnable(GL_TEXTURE_2D);
-  glPushMatrix();
-  glTranslatef(0.0,0.0,1.0);
-  glRotatef( theta, 0.0f, 0.0f, 1.0f );
-  glColor4f( 1.0, 1.0, 1.0, 1.0 );
-  glBindTexture( GL_TEXTURE_2D, texture2 );
-  glBegin( GL_QUADS );
-  glTexCoord2d(0.0,0.0); glVertex3f(-1.0,-1.0,0.0); //size of texture
-  glTexCoord2d(1.0,0.0); glVertex3f(+1.0,-1.0,0.0);
-  glTexCoord2d(1.0,1.0); glVertex3f(+1.0,+1.0,0.0);
-  glTexCoord2d(0.0,1.0); glVertex3f(-1.0,+1.0,0.0);
-  glEnd();
-  glPopMatrix();
-
-
-  glPushMatrix();
-  glTranslatef( 0.0, -1.0, 0.0 );
-  glRotatef( theta, 0.0f, 1.0f, 0.0f );
-  glColor4f( 1.0, 1.0, 1.0, 1.0);
-  glBindTexture( GL_TEXTURE_2D, texture1 );
-  glBegin( GL_QUADS );
-  glTexCoord2d(0.0,0.0); glVertex3f(-1.0,0.0,-1.0);
-  glTexCoord2d(1.0,0.0); glVertex3f(+1.0,0.0,-1.0);
-  glTexCoord2d(1.0,1.0); glVertex3f(+1.0,0.0,+1.0);
-  glTexCoord2d(0.0,1.0); glVertex3f(-1.0,0.0,+1.0);
-  glEnd();
-  glPopMatrix();
-  glDisable(GL_TEXTURE_2D);
-
-  theta += 1.0f; //increment rotation
-
-
-}
 
 class Convexcomp
 {
@@ -493,7 +435,8 @@ void FViewer::draw_slices(float m[][4], bool frame)
 			glBindTexture(GL_TEXTURE_3D, _txt[0]);
 			glBegin(GL_POLYGON);
 			for (i=0; i<pt.size(); i++){
-			  glColor3f(1.0, 1.0, 1.0);
+              glColor3f(1.0, 1.0, 1.0);
+              //glColor3f(0.6, 1.0, 1.0);
 			  glTexCoord3d((pt[i][0]+1.0)/2.0, (-pt[i][1]+1)/2.0, (pt[i][2]+1.0)/2.0);
 			  glVertex3f(pt[i][0], pt[i][1], pt[i][2]);
 			}
@@ -829,4 +772,89 @@ inline void FViewer::light_ray(int x, int y, int z, int n, float decay)
 		zz = z + _ray_templ[i][2];
 	} while ((xx>=0)&&(xx<n)&&(yy>=0)&&(yy<n)&&(zz>=0)&&(zz<n));
 }
+
+
+
+/** GULAG  */
+#if 0
+void FViewer::draw_cube(void)
+{
+  return; // TODO: verify we can axe it here.
+
+    glDisable(GL_TEXTURE_3D);
+    glDisable(GL_FRAGMENT_PROGRAM_ARB);
+
+  glEnable(GL_TEXTURE_2D);
+  glPushMatrix();
+  glTranslatef(0.0,0.0,1.0);
+  glRotatef( theta, 0.0f, 0.0f, 1.0f );
+  glColor4f( 1.0, 1.0, 1.0, 1.0 );
+  glBindTexture( GL_TEXTURE_2D, texture2 );
+  glBegin( GL_QUADS );
+  glTexCoord2d(0.0,0.0); glVertex3f(-1.0,-1.0,0.0); //size of texture
+  glTexCoord2d(1.0,0.0); glVertex3f(+1.0,-1.0,0.0);
+  glTexCoord2d(1.0,1.0); glVertex3f(+1.0,+1.0,0.0);
+  glTexCoord2d(0.0,1.0); glVertex3f(-1.0,+1.0,0.0);
+  glEnd();
+  glPopMatrix();
+
+
+  glPushMatrix();
+  glTranslatef( 0.0, -1.0, 0.0 );
+  glRotatef( theta, 0.0f, 1.0f, 0.0f );
+  glColor4f( 1.0, 1.0, 1.0, 1.0);
+  glBindTexture( GL_TEXTURE_2D, texture1 );
+  glBegin( GL_QUADS );
+  glTexCoord2d(0.0,0.0); glVertex3f(-1.0,0.0,-1.0);
+  glTexCoord2d(1.0,0.0); glVertex3f(+1.0,0.0,-1.0);
+  glTexCoord2d(1.0,1.0); glVertex3f(+1.0,0.0,+1.0);
+  glTexCoord2d(0.0,1.0); glVertex3f(-1.0,0.0,+1.0);
+  glEnd();
+  glPopMatrix();
+  glDisable(GL_TEXTURE_2D);
+
+  theta += 1.0f; //increment rotation
+
+
+}
+
+
+
+this->image_textures.clear();
+for( size_t k = 0; k < texNames.size(); k++ )
+{ // assign the textures
+  char* cstrName = (char*) malloc( sizeof(char) * texNames[k].size() + 1 );
+  memcpy( cstrName, texNames[k].c_str(), sizeof(char) *(texNames[k].size()));
+  cstrName[texNames[k].size()] = 0;
+  std::cout<<"attempting to load file: "<<cstrName<< std::endl;
+  Image* img = loadBMP( cstrName ); //new Image( cstrName, 256, 256 );
+  std::cout<<"load BMP done. "<<endl;
+  image_textures.push_back(img);
+  free( cstrName );
+  if( k == 0 )
+    texture1 = LoadTextureBMP( image_textures[k] );
+  else if( k == 1 )
+    texture2 = LoadTextureBMP( image_textures[k] );
+}
+
+theta = 0.0;
+
+#endif
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 

@@ -4,12 +4,13 @@
 #include "fluid.h"
 #include <assert.h>
 #include <math.h>
+#include <omp.h>
 
 struct Fluid::SimParams
 {
-    bool use_Diffuse, use_Advect;
-    int  log2_of_N;
-    float dt;
+  bool use_Diffuse, use_Advect;
+  int  log2_of_N;
+  float dt;
 };
 
 void Fluid::init_with_args(int argc, char *argv[])
@@ -34,6 +35,8 @@ Fluid::Fluid()
   w=buffers[i++]; w0=buffers[i++];
 
   clear_sources();
+
+  omp_set_num_threads(4);
 
   int size = (int) pow( N()+2.0,3.0 );
   for (i=0; i<size; i++)
@@ -90,7 +93,7 @@ void Fluid::add_buoyancy(float dt)
     v[i] += -T[i]*buoyancy*dt;
 }
 
-inline void Fluid::diffuse(int b, float* x0, float* x, float diff, float dt)
+void Fluid::diffuse(int b, float* x0, float* x, float diff, float dt)
 {
   int i, j, k, l;
   float a=dt*diff*N()*N()*N();
@@ -113,7 +116,7 @@ inline void Fluid::diffuse(int b, float* x0, float* x, float diff, float dt)
   }
 }
 
-inline void Fluid::advect(int b, float* x0, float* x, float* uu, float* vv, float* ww, float dt)
+void Fluid::advect(int b, float* x0, float* x, float* uu, float* vv, float* ww, float dt)
 {
   int i, j, k, i0, j0, k0, i1, j1, k1;
   float sx0, sx1, sy0, sy1, sz0, sz1, v0, v1;
@@ -143,7 +146,7 @@ inline void Fluid::advect(int b, float* x0, float* x, float* uu, float* vv, floa
   set_bnd(b,d);
 }
 
-inline void Fluid::advect_cool(int b, float* x0, float* x, float* y0, float* y, float* uu, float* vv, float* ww, float dt)
+void Fluid::advect_cool(int b, float* x0, float* x, float* y0, float* y, float* uu, float* vv, float* ww, float dt)
 {
   int i, j, k, i0, j0, k0, i1, j1, k1;
   float sx0, sx1, sy0, sy1, sz0, sz1, v0, v1;
@@ -223,16 +226,16 @@ void Fluid::project(void)
 
 void Fluid::vorticity_confinement(float dt)
 {
-  int i,j,k,ijk;
+  int i,j,k;
   float *curlx = u0, *curly = v0, *curlz=w0, *curl=T0;		// temp buffers
   float dt0 = dt * vc_eps;
-  float x,y,z;
 
 
   for (k=1; k<N(); k++) {
     for (j=1; j<N(); j++) {
       for (i=1; i<N(); i++) {
-        ijk = _I(i,j,k);
+        float x,y,z;
+        int ijk = _I(i,j,k);
         // curlx = dw/dy - dv/dz
         x = curlx[ijk] = (w[_I(i,j+1,k)] - w[_I(i,j-1,k)]) * 0.5f -
             (v[_I(i,j,k+1)] - v[_I(i,j,k-1)]) * 0.5f;
@@ -254,7 +257,7 @@ void Fluid::vorticity_confinement(float dt)
   for (k=1; k<N(); k++) {
     for (j=1; j<N(); j++) {
       for (i=1; i<N(); i++) {
-        ijk = _I(i,j,k);
+        int ijk = _I(i,j,k);
         float Nx = (curl[_I(i+1,j,k)] - curl[_I(i-1,j,k)]) * 0.5f;
         float Ny = (curl[_I(i,j+1,k)] - curl[_I(i,j-1,k)]) * 0.5f;
         float Nz = (curl[_I(i,j,k+1)] - curl[_I(i,j,k-1)]) * 0.5f;
@@ -277,26 +280,69 @@ void Fluid::vorticity_confinement(float dt)
 
 void Fluid::vel_step(float dt)
 {
-  add_source(su, u, dt);
-  add_source(sv, v, dt);
-  add_source(sw, w, dt);
+  int nthreads, tid;
+  nthreads = omp_get_num_threads();
+
+//#pragma omp parallel shared(nthreads, tid)
+  { // fork some threads, each one does one call to expensive warpPerspective
+  //  tid = omp_get_thread_num();
+    //if( tid == 0 ) {
+      add_source(su, u, dt);
+    //} else if( tid == 1 ) {
+      add_source(sv, v, dt);
+    //} else if( tid == 2 ) {
+      add_source(sw, w, dt);
+    //}
+  }
+
+  {
+  #pragma omp barrier
   add_buoyancy(dt);
   vorticity_confinement(dt);
-
+  }
 #ifdef DIFFUSE
-  SWAPFPTR(u0, u); SWAPFPTR(v0, v); SWAPFPTR(w0, w);
-  diffuse(1, u0, u, viscosity, dt);
-  diffuse(2, v0, v, viscosity, dt);
-  diffuse(3, w0, w, viscosity, dt);
+//#pragma omp parallel shared(nthreads, tid)
+  { // fork some threads, each one does one call to expensive warpPerspective
+  //  tid = omp_get_thread_num();
+    //if( tid == 0 ) {
+      SWAPFPTR(u0, u);
+      diffuse(1, u0, u, viscosity, dt);
+    //} else if( tid == 1 ) {
+      SWAPFPTR(v0, v);
+      diffuse(2, v0, v, viscosity, dt);
+    //} else if( tid == 2 ) {
+      SWAPFPTR(w0, w);
+      diffuse(3, w0, w, viscosity, dt);
+//    }
+  }
+  {
+  #pragma omp barrier
+  }
   project();
 #endif
+
+
 #ifdef ADVECT
-  SWAPFPTR(u0, u); SWAPFPTR(v0, v); SWAPFPTR(w0, w);
-  advect(1, u0, u, u0, v0, w0, dt);
-  advect(2, v0, v, u0, v0, w0, dt);
-  advect(3, w0, w, u0, v0, w0, dt);
+//#pragma omp parallel shared(nthreads, tid)
+  { // fork some threads, each one does one call to expensive warpPerspective
+  //  tid = omp_get_thread_num();
+    //if( tid == 0 ) {
+      SWAPFPTR(u0, u);
+      advect(1, u0, u, u0, v0, w0, dt);
+    //} else if( tid == 1 ) {
+      SWAPFPTR(v0, v);
+      advect(2, v0, v, u0, v0, w0, dt);
+    //} else if( tid == 2 ) {
+      SWAPFPTR(w0, w);
+      advect(3, w0, w, u0, v0, w0, dt);
+    //}
+  }
+  {
+  //#pragma omp barrier
+  }
   project();
 #endif
+
 }
 
 void Fluid::dens_step(float dt)

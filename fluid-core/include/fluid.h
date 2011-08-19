@@ -16,7 +16,7 @@
 class Fluid
 {
 public:
-  static int N() {
+  inline static int N() {
     return 62; // #define N 62				// must be N^2-2
   }
 

@@ -92,55 +92,55 @@ void SaveBufferToImage( int w, int h, const std::string & strFilename ) {
 
 void error(const char* str)
 {
-	printf("Error: %s/n", str);
+  printf("Error: %s/n", str);
 
 }
 
 bool init(void)
 {
-	char str[256];
+  char str[256];
 
-	/* SDL */
-	if ( SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER) < 0 ) {
+  /* SDL */
+  if ( SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER) < 0 ) {
     sprintf(str, "Unable to init SDL: %s\n", SDL_GetError());
-		error(str);
+    error(str);
     return false;
   }
   atexit(SDL_Quit);
 
-	SDL_GL_SetAttribute( SDL_GL_RED_SIZE, 8 );
-	SDL_GL_SetAttribute( SDL_GL_GREEN_SIZE, 8 );
-	SDL_GL_SetAttribute( SDL_GL_BLUE_SIZE, 8 );
-	SDL_GL_SetAttribute( SDL_GL_ALPHA_SIZE, 8 );
-	SDL_GL_SetAttribute( SDL_GL_DEPTH_SIZE, 16 );
-	SDL_GL_SetAttribute( SDL_GL_DOUBLEBUFFER, 1 );
+  SDL_GL_SetAttribute( SDL_GL_RED_SIZE, 8 );
+  SDL_GL_SetAttribute( SDL_GL_GREEN_SIZE, 8 );
+  SDL_GL_SetAttribute( SDL_GL_BLUE_SIZE, 8 );
+  SDL_GL_SetAttribute( SDL_GL_ALPHA_SIZE, 8 );
+  SDL_GL_SetAttribute( SDL_GL_DEPTH_SIZE, 16 );
+  SDL_GL_SetAttribute( SDL_GL_DOUBLEBUFFER, 1 );
 
   screen = SDL_SetVideoMode(512, 512, 32, SDL_OPENGL | SDL_RESIZABLE);
-	if ( screen == NULL ) {
+  if ( screen == NULL ) {
     sprintf(str, "Unable to set video: %s\n", SDL_GetError());
-		error(str);
+    error(str);
     return false;
-	}
+  }
 
-	/* Fluid */
+  /* Fluid */
 
   fluid = new Fluid();
-  fluid->diffusion = 0.00001f;
-  fluid->viscosity = 0.00000f; // 0
-  fluid->buoyancy  = 1.5f;   // 1.5
+  fluid->diffusion = 0.0000001f;
+  fluid->viscosity = 0.000001f; // 0
+  fluid->buoyancy  = 2.5f;   // 1.5
   fluid->cooling   = 1.0f;   // 1.0
-  fluid->vc_eps    = 1.0f;   // 4.0
+  fluid->vc_eps    = 5.0f;   // 4.0
 
 
-	/* Viewer */
+  /* Viewer */
   std::vector<std::string> strNames(0);
   viewer = new FViewer( strNames );
 
-	viewer->viewport(screen->w, screen->h);
+  viewer->viewport(screen->w, screen->h);
 
-	gfparams = randfloats(256);
+  gfparams = randfloats(256);
 
-	return true;
+  return true;
 }
 
 int simulate(void* )
@@ -155,8 +155,9 @@ int simulate(void* )
     if (!paused && !update)
     {
       cout << "updating ... t = " << t << endl;
-      int idxStart = 12;
+      int idxStart = (Fluid::N()+2)/8;
       int idxStop  = Fluid::N()+2-idxStart;
+      double booster = (rand()%11==0)*10 + (rand()%5==0)*5 + (rand()%3==0)*2;
       for (int i=idxStart; i<idxStop; i++) // TODO: Param, relative to N !?
       {
         for (int j=idxStart; j<idxStop; j++) // TODO: Param, relative to N !?
@@ -164,13 +165,32 @@ int simulate(void* )
           f = genfunc(i-idxStart,j-idxStart,
                       idxStop-idxStart,idxStop-idxStart,
                       t,gfparams);
-          double vs = (sin(t*CV_PI*1.3));
-          double us = (cos(t*CV_PI*1.2));
-          fluid->sT[_I(i,idxStop+2,j)] = 3*(((float)(rand()%100)/50.0f + f *5.0f));
+          double vs = 3*(sin(t*CV_PI*1.3));
+          double us = 3*(cos(t*CV_PI*1.2));
+          fluid->sT[_I(i,idxStop+2,j)] = (((float)(rand()%100)/50.0f + f *5.0f));
+          fluid->sT[_I(i,idxStop+1,j)] = (((float)(rand()%100)/50.0f + f *5.0f));
+          fluid->sT[_I(i,idxStop,j)]   = (((float)(rand()%100)/50.0f + f *5.0f));
+
           fluid->sd[_I(i,idxStop+2,j)] = 1.0f;
           fluid->su[_I(i,idxStop+2,j)] = us * fluid->sT[_I(i,idxStop+2,j)];
-          fluid->sv[_I(i,idxStop+2,j)] = -abs(us)-abs(vs)-2;
           fluid->sw[_I(i,idxStop+2,j)] = vs * fluid->sT[_I(i,idxStop+2,j)];
+
+          fluid->sv[_I(i,idxStop+2,j)] = -fluid->v[_I(i,idxStop/2,j)]; // -UP
+
+          // walls
+          fluid->su[_I(idxStop,i,j)]   = us * 5;
+          fluid->su[_I(idxStart,i,j)]  = us * 5;
+          fluid->su[_I(i,j+2,idxStart)]  = us * 5 ;
+          fluid->su[_I(i,j+2,idxStop)]   = us * 5 ;
+          fluid->sw[_I(idxStop,i,j)]   = vs * 5 ;
+          fluid->sw[_I(idxStart,i,j)]  = vs * 5 ;
+          fluid->sw[_I(i,j+2,idxStart)]  = vs * 5;
+          fluid->sw[_I(i,j+2,idxStop)]   = vs * 5;
+
+          fluid->sv[_I(i,idxStop,j)] = -abs(us)*abs(vs)-booster-2;
+
+
+
 
         }
       }
@@ -188,39 +208,39 @@ int simulate(void* )
 SDL_UserEvent nextframe = { SDL_USEREVENT, 0, NULL, NULL};
 Uint32 timer_proc(Uint32 interval, void* bla)
 {
-	/*if (!paused)
+  /*if (!paused)
   SDL_PushEvent((SDL_Event*) &nextframe);*/
-	wasupdate = update;
-	update = true;
-	return interval;
+  wasupdate = update;
+  update = true;
+  return interval;
 }
 
 Uint32 showfps(Uint32 interval, void* bla)
 {
-	static int lastf = 0, lastsf = 0;
+  static int lastf = 0, lastsf = 0;
 
-	sprintf(infostring, "FPS: %d, sFPS: %d, simframes: %d",
+  sprintf(infostring, "FPS: %d, sFPS: %d, simframes: %d",
           frames - lastf,
           simframes - lastsf,
           simframes);
 
-	lastf = frames;
-	lastsf = simframes;
+  lastf = frames;
+  lastsf = simframes;
 
-	return interval;
+  return interval;
 }
 
 int EventLoop(FILE* fp)
 {
   SDL_Event event;
-	unsigned int ts;
+  unsigned int ts;
 
-	paused = false;
+  paused = false;
 
   while (1) {
-		//ts = SDL_GetTicks();
-		while (SDL_PollEvent(&event)) {
-			switch (event.type) {
+    //ts = SDL_GetTicks();
+    while (SDL_PollEvent(&event)) {
+      switch (event.type) {
       case SDL_KEYUP:
         switch (event.key.keysym.sym) {
         case SDLK_ESCAPE:
@@ -286,25 +306,25 @@ int EventLoop(FILE* fp)
           break;
         }
         break;
-				/*case SDL_USEREVENT:
+        /*case SDL_USEREVENT:
      viewer->load_frame();
      redraw = true;
      break;*/
-			}
-		}
+      }
+    }
 
     if (update)
-		{
-			if (mode == SIMULATE) {
-				viewer->frame_from_sim(fluid);
-				if (fp)
-					fluid->store(fp);
-			} else
-				viewer->load_frame();
-			redraw = true;
-			update = wasupdate;
-			wasupdate = false;
-		}
+    {
+      if (mode == SIMULATE) {
+        viewer->frame_from_sim(fluid);
+        if (fp)
+          fluid->store(fp);
+      } else
+        viewer->load_frame();
+      redraw = true;
+      update = wasupdate;
+      wasupdate = false;
+    }
 
     if (redraw)
     { /* Call main draw loop */
@@ -337,7 +357,7 @@ int EventLoop(FILE* fp)
     }
   }
 
-	return 1;
+  return 1;
 }
 
 using namespace GetOpt;
@@ -352,62 +372,66 @@ int main(int argc, char* argv[])
 
   ops >> OptionPresent( 's', "saveImages", bSaveOutput );
 
-	char str[256];
-	FILE *fp = NULL;
-	int h[3];
-	SDL_TimerID playtimer, fpstimer;
+  char str[256];
+  FILE *fp = NULL;
+  int h[3];
+  SDL_TimerID playtimer, fpstimer;
   // allocate a texture name
   glGenTextures( 1, &texture );
 
 
-	if (!init())
-		return 1;
+  if (!init())
+    return 1;
 
-	if (argc>1) {
-    if (!strcmp(argv[1],"-l") /*&& (argc==3)*/) {
-			mode = PLAY;
-			if (!viewer->open(argv[2]))	{
+  if (argc>1)
+  {
+    if (!strcmp(argv[1],"-l") ) {
+      mode = PLAY;
+      if (!viewer->open(argv[2]))	{
         printf("viewer->open failed \n");
-				error("Unable to load data file\n");
-				exit(1);
-			}
-    } else if (!strcmp(argv[1], "-w") /*&& (argc==3)*/) {
-			mode = SIMULATE;
-			fp = fopen(argv[2], "wb");
-			fwrite(h, sizeof(int), 3, fp);
-		} else {
-			printf("Invalid command line argument. Usage: fluid [-l|-w <filename>]\n");
-			exit(1);
-		}
-	} else {
-		mode = SIMULATE;
-	}
+        error("Unable to load data file\n");
+        exit(1);
+      }
+    } else if (!strcmp(argv[1], "-w") ) {
+      mode = SIMULATE;
+      fp = fopen(argv[2], "wb");
+      fwrite(h, sizeof(int), 3, fp);
+    } else {
+      printf("Invalid command line argument. Usage: fluid [-l|-w <filename>]\n");
+      exit(1);
+    }
+  } else
+  {
+    cout << "No args as input, simulating without save!" << endl;
+    mode = SIMULATE;
+  }
 
-	if (mode == SIMULATE)
-		simthread = SDL_CreateThread(simulate, NULL);
+  if (mode == SIMULATE)
+    simthread = SDL_CreateThread(simulate, NULL);
 
-	if (mode == PLAY)
-		playtimer = SDL_AddTimer(1000/16, timer_proc, NULL);
+  if (mode == PLAY)
+    playtimer = SDL_AddTimer(1000/16, timer_proc, NULL);
 
-	fpstimer = SDL_AddTimer(1000, showfps, NULL);
-	EventLoop(fp);
-	SDL_RemoveTimer(fpstimer);
-	if (mode==PLAY)
-		SDL_RemoveTimer(playtimer);
+  fpstimer = SDL_AddTimer(1000, showfps, NULL);
+  EventLoop(fp);
+  SDL_RemoveTimer(fpstimer);
+  if (mode==PLAY)
+    SDL_RemoveTimer(playtimer);
 
-	if (mode == SIMULATE) {
-		quitting = true;
-		SDL_WaitThread(simthread, NULL);
-	}
+  if (mode == SIMULATE) {
+    quitting = true;
+    SDL_WaitThread(simthread, NULL);
+  }
 
-	if (fp && (mode == SIMULATE))	{
-		int pos;
+  if (fp && (mode == SIMULATE))
+  { // if ran with -w  foo.dat arg, save it!
+    int pos;
     h[0] = h[1] = Fluid::N()+2;
-		h[2] = simframes;
-		pos = ftell(fp);
-		fseek(fp, 0, SEEK_SET);
-		fwrite(h, sizeof(int), 3, fp);
-		fclose(fp);
-		printf("%d frames written to file %s, %d kiB\n", simframes, argv[2], pos>>10);
-	}
+    h[2] = simframes;
+    pos = ftell(fp);
+    fseek(fp, 0, SEEK_SET);
+    fwrite(h, sizeof(int), 3, fp);
+    fclose(fp);
+    printf("%d frames written to file %s, %d kiB\n", simframes, argv[2], pos>>10);
+  }
 }
