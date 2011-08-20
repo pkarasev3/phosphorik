@@ -243,7 +243,7 @@ void FViewer::init_GL(void)
           texture[index]   = (unsigned char)(((float)data[k*4]));
           texture[index+1] = (unsigned char)(((float)data[k*4+1]));
           texture[index+2] = (unsigned char)(((float)data[k*4+2]));
-#define MAX_FIRE_ALPHA 0.3f
+#define MAX_FIRE_ALPHA 0.2f
 #define FULL_ON_FIRE 255
           texture[index+3] = 255 * MAX_FIRE_ALPHA *
           ( (k>FULL_ON_FIRE) ? 1.0f :
@@ -390,6 +390,8 @@ public:
 	}
 };
 
+double rand_theta = 0.0;
+
 void FViewer::draw_slices(float m[][4], bool frame)
 {
 	int i;
@@ -419,6 +421,12 @@ void FViewer::draw_slices(float m[][4], bool frame)
 	float d0 = -(viewdir[0]*cv[i][0] + viewdir[1]*cv[i][1] + viewdir[2]*cv[i][2]);
 	float dd = 2*d0/64.0f;
 	int n = 0;
+    rand_theta += (rand()%101)/180.0;
+    if( rand_theta > 20 )
+      rand_theta = 20;
+    if( rand_theta < -20 )
+      rand_theta = -20;
+
 	for (float d = -d0; d < d0; d += dd) {
     // intersect_edges returns the intersection points of all cube edges with
     // the given plane that lie within the cube
@@ -436,11 +444,27 @@ void FViewer::draw_slices(float m[][4], bool frame)
 			glBegin(GL_POLYGON);
 			for (i=0; i<pt.size(); i++){
               glColor3f(1.0, 1.0, 1.0);
-              //glColor3f(0.6, 1.0, 1.0);
 			  glTexCoord3d((pt[i][0]+1.0)/2.0, (-pt[i][1]+1)/2.0, (pt[i][2]+1.0)/2.0);
 			  glVertex3f(pt[i][0], pt[i][1], pt[i][2]);
 			}
 			glEnd();
+            glBegin(GL_POLYGON);
+            for (i=0; i<pt.size(); i++){
+              glColor3f(1.0, 1.0, 0.0);
+              glTexCoord3d((pt[i][0]+1.0)/2.0, (-pt[i][1]+1)/2.0, (pt[i][2]+1.0)/2.0);
+              glVertex3f(pt[i][0], pt[i][1]+2.0/Fluid::N(), pt[i][2]);
+            }
+            glEnd();
+            glPushMatrix();
+            glRotatef(rand_theta,0,1,0);
+            glBegin(GL_POLYGON);
+            for (i=0; i<pt.size(); i++){
+              glColor3f(0.5, 1.0, 1.0);
+              glTexCoord3d((pt[i][0]+1.0)/2.0, (-pt[i][1]+1)/2.0, (pt[i][2]+1.0)/2.0);
+              glVertex3f(pt[i][0], pt[i][1]+2.0/Fluid::N(), pt[i][2]);
+            }
+            glEnd();
+            glPopMatrix();
 
 			if (frame)
 			{

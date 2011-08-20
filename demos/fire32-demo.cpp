@@ -126,10 +126,10 @@ bool init(void)
 
   fluid = new Fluid();
   fluid->diffusion = 0.0000001f;
-  fluid->viscosity = 0.000001f; // 0
+  fluid->viscosity = 0*0.000001f; // 0
   fluid->buoyancy  = 2.5f;   // 1.5
   fluid->cooling   = 1.0f;   // 1.0
-  fluid->vc_eps    = 5.0f;   // 4.0
+  fluid->vc_eps    = 2.0f;   // 4.0
 
 
   /* Viewer */
@@ -165,17 +165,18 @@ int simulate(void* )
           f = genfunc(i-idxStart,j-idxStart,
                       idxStop-idxStart,idxStop-idxStart,
                       t,gfparams);
-          double vs = 3*(sin(t*CV_PI*1.3));
-          double us = 3*(cos(t*CV_PI*1.2));
-          fluid->sT[_I(i,idxStop+2,j)] = (((float)(rand()%100)/50.0f + f *5.0f));
-          fluid->sT[_I(i,idxStop+1,j)] = (((float)(rand()%100)/50.0f + f *5.0f));
-          fluid->sT[_I(i,idxStop,j)]   = (((float)(rand()%100)/50.0f + f *5.0f));
+          double vs  = 3*(sin(t*CV_PI*1.3));
+          double us  = 3*(cos(t*CV_PI*1.2));
+          double tval= (((float)(rand()%100)/50.0f + f *5.0f));
+          fluid->sT[_I(i,idxStop+4,j)] = tval;
+          fluid->sT[_I(i,idxStop+3,j)] = tval;
+          fluid->sT[_I(i,idxStop+2,j)]   = tval;
 
-          fluid->sd[_I(i,idxStop+2,j)] = 1.0f;
-          fluid->su[_I(i,idxStop+2,j)] = us * fluid->sT[_I(i,idxStop+2,j)];
-          fluid->sw[_I(i,idxStop+2,j)] = vs * fluid->sT[_I(i,idxStop+2,j)];
+          fluid->sd[_I(i,idxStop+4,j)] = 1.0f;
+          fluid->su[_I(i,idxStop+4,j)] = us * tval;
+          fluid->sw[_I(i,idxStop+4,j)] = vs * tval;
 
-          fluid->sv[_I(i,idxStop+2,j)] = -fluid->v[_I(i,idxStop/2,j)]; // -UP
+          fluid->sv[_I(i,idxStop+4,j)] = -fluid->v[_I(i,idxStop/2,j)]; // -UP
 
           // walls
           fluid->su[_I(idxStop,i,j)]   = us * 5;
