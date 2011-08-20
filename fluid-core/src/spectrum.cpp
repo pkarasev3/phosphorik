@@ -126,6 +126,7 @@ void xyz_to_rgb(struct colourSystem *cs,
   double rx, ry, rz, gx, gy, gz, bx, by, bz;
   double rw, gw, bw;
 
+
   xr = cs->xRed;    yr = cs->yRed;    zr = 1 - (xr + yr);
   xg = cs->xGreen;  yg = cs->yGreen;  zg = 1 - (xg + yg);
   xb = cs->xBlue;   yb = cs->yBlue;   zb = 1 - (xb + yb);
@@ -156,6 +157,12 @@ void xyz_to_rgb(struct colourSystem *cs,
   *r = (rx * xc) + (ry * yc) + (rz * zc);
   *g = (gx * xc) + (gy * yc) + (gz * zc);
   *b = (bx * xc) + (by * yc) + (bz * zc);
+
+
+  /** \badcode pk-hack: get better range in colorvalues */
+  *r = sqrt(*r);
+  *g = sqrt(*g);
+  *b = sqrt(*b);
 }
 
 /*                            INSIDE_GAMUT
@@ -308,11 +315,17 @@ void spectrum_to_xyz(double (*spec_intens)(double wavelength),
     {0.0580,0.1693,0.6162}, {0.0320,0.2080,0.4652}, {0.0147,0.2586,0.3533},
     {0.0049,0.3230,0.2720}, {0.0024,0.4073,0.2123}, {0.0093,0.5030,0.1582},
     {0.0291,0.6082,0.1117}, {0.0633,0.7100,0.0782}, {0.1096,0.7932,0.0573},
-    {0.1655,0.8620,0.0422}, {0.2257,0.9149,0.0298}, {0.2904,0.9540,0.0203},
+
+//    {0.1655,0.8620,0.0422}, {0.2257,0.9149,0.0298}, {0.2904,0.9540,0.0203},
+    {0.4,0.1,0.4}, {0.3,0.2,0.5}, {0.2904,0.9540,0.0203},
+
     {0.3597,0.9803,0.0134}, {0.4334,0.9950,0.0087}, {0.5121,1.0000,0.0057},
     {0.5945,0.9950,0.0039}, {0.6784,0.9786,0.0027}, {0.7621,0.9520,0.0021},
     {0.8425,0.9154,0.0018}, {0.9163,0.8700,0.0017}, {0.9786,0.8163,0.0014},
-    {1.0263,0.7570,0.0011}, {1.0567,0.6949,0.0010}, {1.0622,0.6310,0.0008},
+
+    //{1.0263,0.7570,0.0011}, {1.0567,0.6949,0.0010}, {1.0622,0.6310,0.0008},
+    {1.0263,0.7570,0.0011}, {0.3,0.4,0.5}, {0.2,0.3310,0.5},
+
     {1.0456,0.5668,0.0006}, {1.0026,0.5030,0.0003}, {0.9384,0.4412,0.0002},
     {0.8544,0.3810,0.0002}, {0.7514,0.3210,0.0001}, {0.6424,0.2650,0.0000},
     {0.5419,0.2170,0.0000}, {0.4479,0.1750,0.0000}, {0.3608,0.1382,0.0000},
@@ -320,17 +333,26 @@ void spectrum_to_xyz(double (*spec_intens)(double wavelength),
     {0.1212,0.0446,0.0000}, {0.0874,0.0320,0.0000}, {0.0636,0.0232,0.0000},
     {0.0468,0.0170,0.0000}, {0.0329,0.0119,0.0000}, {0.0227,0.0082,0.0000},
     {0.0158,0.0057,0.0000}, {0.0114,0.0041,0.0000}, {0.0081,0.0029,0.0000},
+
     {0.0058,0.0021,0.0000}, {0.0041,0.0015,0.0000}, {0.0029,0.0010,0.0000},
+
     {0.0020,0.0007,0.0000}, {0.0014,0.0005,0.0000}, {0.0010,0.0004,0.0000},
     {0.0007,0.0002,0.0000}, {0.0005,0.0002,0.0000}, {0.0003,0.0001,0.0000},
     {0.0002,0.0001,0.0000}, {0.0002,0.0001,0.0000}, {0.0001,0.0000,0.0000},
-    {0.0001,0.0000,0.0000}, {0.0001,0.0000,0.0000}, {0.0000,0.0000,0.0000}
+
+    //{0.0001,0.0000,0.0000}, {0.0001,0.0000,0.0000}, {0.0000,0.0000,0.0000}
+    {0.1,0.1,0.1}, {0.0001,0.0000,0.0000}, {0.0000,0.0000,0.0000}
   };
 
-  for (i = 0, lambda = 380; lambda < 780.1; i++, lambda += 5) {
+  double lambda_start = 380    - 200 ;
+  double lambda_stop  = 780.1  + 200;
+  int    iMax         = 81;
+  double lambda_step  = (lambda_stop - lambda_start) / iMax;
+  for (i = 0, lambda = lambda_start; i < iMax; i++, lambda += lambda_step) {
     double Me;
 
-    Me = (*spec_intens)(lambda);
+    double spec_squasher = 0.5; // something like square-root, to get more dynamic range
+    Me = pow( (*spec_intens)(lambda), spec_squasher);
     X += Me * cie_colour_match[i][0];
     Y += Me * cie_colour_match[i][1];
     Z += Me * cie_colour_match[i][2];
@@ -346,7 +368,7 @@ void spectrum_to_xyz(double (*spec_intens)(double wavelength),
     Calculate, by Planck's radiation law, the emittance of a black body
     of temperature bbTemp at the given wavelength (in metres).  */
 
-double bbTemp = 3000;                 /* Hidden temperature argument
+double bbTemp = 10000;                 /* Hidden temperature argument
                                          to BB_SPECTRUM. */
 double bb_spectrum(double wavelength)
 {
@@ -374,7 +396,9 @@ void spectrum(double t1, double t2, int N, unsigned char* d)
 {
 	int i,j,dj;
 	double X,Y,Z,R,G,B,L,M,S, Lw, Mw, Sw;
-	struct colourSystem *cs = &CIEsystem;
+
+    // Defines how wavelengths map to color space
+    struct colourSystem *cs = &CIEsystem;
 
 	j = 0; dj = 1;
 	if (t1<t2) {
@@ -402,10 +426,11 @@ void spectrum(double t1, double t2, int N, unsigned char* d)
 		xyz_to_rgb(cs, X, Y, Z, &R, &G, &B);
 		constrain_rgb(&R, &G, &B);
 		norm_rgb(&R, &G, &B);
-    d[(j<<2)]   = (unsigned char) ((double)R*255);
+        d[(j<<2)]   = (unsigned char) ((double)R*255);
 		d[(j<<2)+1] = (unsigned char) ((double)G*255);
 		d[(j<<2)+2] = (unsigned char) ((double)B*255);
-		d[(j<<2)+3] = (B>0.1)? B*255 : 0;
+        d[(j<<2)+3] = (B>0.1)? B*255 : 0;
+        //d[(j<<2)+3] = 128;
 		j += dj;
 	}
 }

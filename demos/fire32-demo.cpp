@@ -126,10 +126,10 @@ bool init(void)
 
   fluid = new Fluid();
   fluid->diffusion = 0.0000001f;
-  fluid->viscosity = 0*0.000001f; // 0
+  fluid->viscosity = 0.000001f; // 0
   fluid->buoyancy  = 2.5f;   // 1.5
   fluid->cooling   = 1.0f;   // 1.0
-  fluid->vc_eps    = 2.0f;   // 4.0
+  fluid->vc_eps    = 1.0f;   // 4.0
 
 
   /* Viewer */
@@ -147,7 +147,7 @@ int simulate(void* )
 {
   assert(fluid != NULL);
 
-  float dt = 0.1; // TODO: Param
+  float dt = 0.25 * 0.1; // TODO: Param
   float f;
 
   while (!quitting)
@@ -155,9 +155,10 @@ int simulate(void* )
     if (!paused && !update)
     {
       cout << "updating ... t = " << t << endl;
-      int idxStart = (Fluid::N()+2)/8;
-      int idxStop  = Fluid::N()+2-idxStart;
-      double booster = (rand()%11==0)*10 + (rand()%5==0)*5 + (rand()%3==0)*2;
+      int idxStart    = (Fluid::N()+2)/8;
+      int idxStop     = Fluid::N()+2-idxStart;
+      double xyCenter = Fluid::N()/2.0;
+      double booster  = (rand()%11==0)*10 + (rand()%5==0)*5 + (rand()%3==0)*2;
       for (int i=idxStart; i<idxStop; i++) // TODO: Param, relative to N !?
       {
         for (int j=idxStart; j<idxStop; j++) // TODO: Param, relative to N !?
@@ -165,12 +166,12 @@ int simulate(void* )
           f = genfunc(i-idxStart,j-idxStart,
                       idxStop-idxStart,idxStop-idxStart,
                       t,gfparams);
-          double vs  = 3*(sin(t*CV_PI*1.3));
-          double us  = 3*(cos(t*CV_PI*1.2));
+          double vs  = 3*(sin(t*CV_PI*1.3)) * sin( 2*CV_PI*(i-xyCenter)/idxStop );
+          double us  = 3*(cos(t*CV_PI*1.2)) * cos( 2*CV_PI*(j-xyCenter)/idxStop );;
           double tval= (((float)(rand()%100)/50.0f + f *5.0f));
           fluid->sT[_I(i,idxStop+4,j)] = tval;
           fluid->sT[_I(i,idxStop+3,j)] = tval;
-          fluid->sT[_I(i,idxStop+2,j)]   = tval;
+          fluid->sT[_I(i,idxStop+2,j)] = tval;
 
           fluid->sd[_I(i,idxStop+4,j)] = 1.0f;
           fluid->su[_I(i,idxStop+4,j)] = us * tval;
