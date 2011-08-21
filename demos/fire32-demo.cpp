@@ -114,8 +114,9 @@ bool init(void)
   SDL_GL_SetAttribute( SDL_GL_ALPHA_SIZE, 8 );
   SDL_GL_SetAttribute( SDL_GL_DEPTH_SIZE, 16 );
   SDL_GL_SetAttribute( SDL_GL_DOUBLEBUFFER, 1 );
+  SDL_GL_SetAttribute( SDL_GL_ACCELERATED_VISUAL,10);
 
-  screen = SDL_SetVideoMode(512, 512, 32, SDL_OPENGL | SDL_RESIZABLE);
+  screen = SDL_SetVideoMode(512, 512, 32, SDL_OPENGL | !SDL_RESIZABLE);
   if ( screen == NULL ) {
     sprintf(str, "Unable to set video: %s\n", SDL_GetError());
     error(str);
@@ -125,11 +126,11 @@ bool init(void)
   /* Fluid */
 
   fluid = new Fluid();
-  fluid->diffusion = 0.0000001f;
-  fluid->viscosity = 0.000001f; // 0
-  fluid->buoyancy  = 2.5f;   // 1.5
-  fluid->cooling   = 1.0f;   // 1.0
-  fluid->vc_eps    = 1.0f;   // 4.0
+  fluid->diffusion = -0.000001f;
+  fluid->viscosity =  0.000001f; // 0
+  fluid->buoyancy  =  2.5f;   // 1.5
+  fluid->cooling   =  1.0f;   // 1.0
+  fluid->vc_eps    =  1.0f;   // 4.0
 
 
   /* Viewer */
@@ -238,6 +239,7 @@ int EventLoop(FILE* fp)
   unsigned int ts;
 
   paused = false;
+  viewer->_dispstring = infostring;
 
   while (1) {
     //ts = SDL_GetTicks();
@@ -308,10 +310,10 @@ int EventLoop(FILE* fp)
           break;
         }
         break;
-        /*case SDL_USEREVENT:
-     viewer->load_frame();
-     redraw = true;
-     break;*/
+          /*case SDL_USEREVENT:
+       viewer->load_frame();
+       redraw = true;
+       break;*/
       }
     }
 
@@ -362,6 +364,19 @@ int EventLoop(FILE* fp)
   return 1;
 }
 
+struct FireDemoParams
+{ // TODO: all demo params go in here
+  FireDemoParams() : timer_msec(5.0) { }
+
+  int init_from_args(int argc, char* argv[] ) {
+    return 0;
+  }
+
+  double timer_msec;
+
+
+};
+
 using namespace GetOpt;
 int main(int argc, char* argv[])
 {
@@ -369,6 +384,9 @@ int main(int argc, char* argv[])
   error("Calibration data missing. Set your desk on fire, program will auto-calibrate at this time.\n");
   exit(1);
 #endif
+
+  FireDemoParams params;
+  params.init_from_args(argc,argv);
 
   GetOpt_pp ops(argc, argv);
 
@@ -412,7 +430,7 @@ int main(int argc, char* argv[])
     simthread = SDL_CreateThread(simulate, NULL);
 
   if (mode == PLAY)
-    playtimer = SDL_AddTimer(1000/16, timer_proc, NULL);
+    playtimer = SDL_AddTimer(params.timer_msec, timer_proc, NULL);
 
   fpstimer = SDL_AddTimer(1000, showfps, NULL);
   EventLoop(fp);

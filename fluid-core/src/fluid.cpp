@@ -5,6 +5,7 @@
 #include <assert.h>
 #include <math.h>
 #include <omp.h>
+#include <iostream>
 
 struct Fluid::SimParams
 {
@@ -93,10 +94,11 @@ void Fluid::add_buoyancy(float dt)
     v[i] += -T[i]*buoyancy*dt;
 }
 
-void Fluid::diffuse(int b, float* x0, float* x, float diff, float dt)
+void Fluid::diffuse(int b, float* x0/*source*/, float* x /*destination*/, float diff, float dt)
 {
   int i, j, k, l;
   float a=dt*diff*N()*N()*N();
+
   for (l=0; l<20; l++)
   {
     for (k=1; k<=N(); k++)
