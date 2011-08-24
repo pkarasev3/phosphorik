@@ -343,20 +343,13 @@ int EventLoop(FILE* fp)
       tmp.append( strName );
       strName = tmp;
       std::string strName_ = "";
-      if( !bSaveOutput || -1 == iDrawTexFlipSign ) { // yes textures!
-        strName.append(".png");
-        viewer->_draw_cube = false;
-      } else { // for no textures just the fluid stuff
-        strName.append(".jpg");
-        viewer->_draw_cube = true;
-        redraw = false;
-      }
+      strName.append(".png");
       strName_.append(strName);
       if( bSaveOutput ) {
         SaveBufferToImage( 512, 512, strName_);
       }
       SDL_GL_SwapBuffers();
-      if( 1 == iDrawTexFlipSign ) { frames++; }
+      frames++;
 
     }
   }
