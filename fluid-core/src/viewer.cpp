@@ -166,7 +166,7 @@ Viewer::Viewer( std::vector<std::string> & texNames )
 {
 	trackball(_quat, 0.0, 0.0, 0.0, 0.0);
 	trackball(_lquat, 0.0, 0.0, 0.0, 0.0);
-	_dist = 5.0f;
+    _dist = 4.0f;
 	_fp = NULL;
 	_texture_data = NULL;
 
@@ -484,7 +484,7 @@ void Viewer::viewport(int w, int h)
 	glGetDoublev(GL_PROJECTION_MATRIX, _ortho_m);
 
 	glLoadIdentity();
-	gluPerspective(45.0 /* fov */,
+    gluPerspective(45.0 /* fov */,         // TODO: Param!
 		(GLdouble) w/h /* aspect ratio */,
 		0.0 /* zNear */,
 		10.0 /* zFar */
@@ -588,7 +588,7 @@ void Viewer::load_frame(void)
 	memset(l,0,_N*_N*_N);
 	cast_light(_N, d, l);
 
-#define ALPHA_THRESH 0.2f
+    double ALPHA_THRESH = 0.5f;
 	for (int i=0; i<_N*_N*_N; i++) {
 		unsigned char c = l[i];
 		_texture_data[(i<<2)] = c;
@@ -596,7 +596,6 @@ void Viewer::load_frame(void)
 		_texture_data[(i<<2)+2] = c;
 		_texture_data[(i<<2)+3] = (d[i]>ALPHA_THRESH) ? 255 : (unsigned char) (d[i]*255.0f*1.0f/ALPHA_THRESH);
 	}
-#undef ALPHA_THRESH
 
 	glActiveTextureARB(GL_TEXTURE0_ARB);
 	glTexImage3D(GL_TEXTURE_3D, 0, GL_RGBA, _N, _N, _N, 0, GL_RGBA, GL_UNSIGNED_BYTE, _texture_data);
@@ -707,7 +706,7 @@ void Viewer::gen_ray_templ(int edgelen)
 	}
 }
 
-#define DECAY 0.06f
+double DECAY = 0.04f;
 void Viewer::cast_light(int n /*edgelen*/, float* dens, unsigned char* intensity)
 {
 	int i,j;
@@ -729,7 +728,7 @@ void Viewer::cast_light(int n /*edgelen*/, float* dens, unsigned char* intensity
 }
 
 
-#define AMBIENT 3
+double AMBIENT = 3.0;
 inline void Viewer::light_ray(int x, int y, int z, int n, float decay, float* dens, unsigned char* intensity)
 {
 	int xx = x, yy = y, zz = z, i = 0;
