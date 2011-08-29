@@ -127,10 +127,10 @@ bool init(void)
 
   fluid = new Fluid();
   fluid->diffusion = -0.000001f;
-  fluid->viscosity =  0.000001f; // 0
-  fluid->buoyancy  =  2.5f;   // 1.5
+  fluid->viscosity =  0.00001f; // 0
+  fluid->buoyancy  =  2.0f;   // 1.5
   fluid->cooling   =  1.0f;   // 1.0
-  fluid->vc_eps    =  1.0f;   // 4.0
+  fluid->vc_eps    =  4.0f;   // 4.0
 
 
   /* Viewer */
@@ -159,7 +159,7 @@ int simulate(void* )
       int idxStart    = (Fluid::N()+2)/8;
       int idxStop     = Fluid::N()+2-idxStart;
       double xyCenter = Fluid::N()/2.0;
-      double booster  = (rand()%11==0)*10 + (rand()%5==0)*5 + (rand()%3==0)*2;
+      double booster  = (rand()%11==0)*11 + (rand()%5==0)*5 + (rand()%3==0)*2;
       for (int i=idxStart; i<idxStop; i++) // TODO: Param, relative to N !?
       {
         for (int j=idxStart; j<idxStop; j++) // TODO: Param, relative to N !?
@@ -170,17 +170,20 @@ int simulate(void* )
           double vs  = 3*(sin(t*CV_PI*1.3)) * sin( 2*CV_PI*(i-xyCenter)/idxStop );
           double us  = 3*(cos(t*CV_PI*1.2)) * cos( 2*CV_PI*(j-xyCenter)/idxStop );;
           double tval= (((float)(rand()%100)/50.0f + f *5.0f));
-          fluid->sT[_I(i,idxStop+4,j)] = tval;
+          fluid->sT[_I(i,idxStop+4,j)] = tval*0.1;
           fluid->sT[_I(i,idxStop+3,j)] = tval;
           fluid->sT[_I(i,idxStop+2,j)] = tval;
 
           fluid->sd[_I(i,idxStop+4,j)] = 1.0f;
-          fluid->su[_I(i,idxStop+4,j)] = us * tval;
-          fluid->sw[_I(i,idxStop+4,j)] = vs * tval;
+          fluid->su[_I(i,idxStop+4,j)] = 3*us * tval;
+          fluid->sw[_I(i,idxStop+4,j)] = 3*vs * tval;
 
-          fluid->sv[_I(i,idxStop+4,j)] = -fluid->v[_I(i,idxStop/2,j)]; // -UP
+          fluid->sv[_I(i,idxStop+4,j)] = -0*fluid->v[_I(i,idxStop/2,j)]; // -UP
 
           // walls
+          fluid->su[_I(idxStop/2,i,j)]   = -5*us ;
+          fluid->sw[_I(idxStop/2,i,j)]   = -5*vs ;
+
           fluid->su[_I(idxStop,i,j)]   = us * 5;
           fluid->su[_I(idxStart,i,j)]  = us * 5;
           fluid->su[_I(i,j+2,idxStart)]  = us * 5 ;
