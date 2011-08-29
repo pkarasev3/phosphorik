@@ -126,8 +126,8 @@ bool init(void)
   /* Fluid */
 
   fluid = new Fluid();
-  fluid->diffusion = -0.000001f;
-  fluid->viscosity =  0.00001f; // 0
+  fluid->diffusion = -0.0000001f;
+  fluid->viscosity =  0.00000001f; // 0
   fluid->buoyancy  =  2.0f;   // 1.5
   fluid->cooling   =  1.0f;   // 1.0
   fluid->vc_eps    =  4.0f;   // 4.0
