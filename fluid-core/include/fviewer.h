@@ -58,7 +58,7 @@ private:
 	bool init_font(void);
 
 public:
-  FViewer(const std::vector<std::string> & texNames);
+  FViewer(const std::vector<std::string> & texNames, double dist = 5.0);
   ~FViewer();
 
   void rotate_light(int x, int y);		// set light orientation according to given coordinates (trackball)

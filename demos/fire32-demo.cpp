@@ -13,6 +13,8 @@
 // opencv dev branch
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/core/core.hpp>
+#include <boost/program_options.hpp>
+#include <boost/lexical_cast.hpp>
 
 // 'getopt' for argument parsing
 #include "getopt_pp_standalone.h"
@@ -24,10 +26,58 @@ using namespace std;
 #include <GL/glu.h>
 #include <sstream>
 
-//#include "SDLfluid.h"
 #include "fluid.h"
 #include "fviewer.h"
 #include "genfunc.h"
+
+using boost::lexical_cast;
+namespace po = boost::program_options;
+
+namespace {
+
+enum { max_length = 1024 };
+
+struct Options {
+  int frameWidth;
+  int frameHeight;
+  string save_imgs;
+  string load_data_file;
+  string save_data_file;
+  string show_info;
+  double cam_to_fire_dist;
+};
+
+int options(int ac, char ** av, Options& opts) {
+  // Declare the supported options.
+  po::options_description desc("Allowed options");
+  desc.add_options()
+      ("help", "Produce help message.")
+      ("width,W", po::value<int>(&opts.frameWidth)->default_value(512),"frame width")
+      ("height,H", po::value<int>(&opts.frameHeight)->default_value(512),"frame height")
+      ("saveimgs,s", po::value<string>(&opts.save_imgs)->default_value(""),"save images , non-empty for 'yes' ")
+      ("load,l", po::value<string>(&opts.load_data_file)->default_value(""),"load data file physics")
+      ("write,w", po::value<string>(&opts.save_data_file)->default_value(""),"save data file physics")
+      ("distance,d", po::value<double>(&opts.cam_to_fire_dist)->default_value(5.0),"range to fire origin")
+      ("infodisplay,i", po::value<string>(&opts.show_info)->default_value(""),"show fps, #frames info at top");
+
+  po::variables_map vm;
+  po::store(po::parse_command_line(ac, av, desc), vm);
+  po::notify(vm);
+
+  if (vm.count("help")) {
+    cout << desc << "\n";
+    return 1;
+  }
+
+  return 0;
+
+}
+
+Options opts;
+
+} // end app-local namespace
+
+
 int iDrawTexFlipSign = 1;
 
 SDL_Surface* screen = NULL;
@@ -116,7 +166,7 @@ bool init(void)
   SDL_GL_SetAttribute( SDL_GL_DOUBLEBUFFER, 1 );
   SDL_GL_SetAttribute( SDL_GL_ACCELERATED_VISUAL,10);
 
-  screen = SDL_SetVideoMode(512, 512, 32, SDL_OPENGL | !SDL_RESIZABLE);
+  screen = SDL_SetVideoMode(opts.frameWidth, opts.frameHeight, 32, SDL_OPENGL | !SDL_RESIZABLE);
   if ( screen == NULL ) {
     sprintf(str, "Unable to set video: %s\n", SDL_GetError());
     error(str);
@@ -135,7 +185,7 @@ bool init(void)
 
   /* Viewer */
   std::vector<std::string> strNames(0);
-  viewer = new FViewer( strNames );
+  viewer = new FViewer( strNames, opts.cam_to_fire_dist);
 
   viewer->viewport(screen->w, screen->h);
 
@@ -159,7 +209,7 @@ int simulate(void* )
       int idxStart    = (Fluid::N()+2)/8;
       int idxStop     = Fluid::N()+2-idxStart;
       double xyCenter = Fluid::N()/2.0;
-      double booster  = (rand()%11==0)*11 + (rand()%5==0)*5 + (rand()%3==0)*2;
+      double booster  = (rand()%13==0)*31 + (rand()%5==0)*11 + (rand()%3==0)*2;
       for (int i=idxStart; i<idxStop; i++) // TODO: Param, relative to N !?
       {
         for (int j=idxStart; j<idxStop; j++) // TODO: Param, relative to N !?
@@ -170,8 +220,8 @@ int simulate(void* )
           double vs  = 3*(sin(t*CV_PI*1.3)) * sin( 2*CV_PI*(i-xyCenter)/idxStop );
           double us  = 3*(cos(t*CV_PI*1.2)) * cos( 2*CV_PI*(j-xyCenter)/idxStop );;
           double tval= (((float)(rand()%100)/50.0f + f *5.0f));
-          fluid->sT[_I(i,idxStop+4,j)] = tval*0.1;
-          fluid->sT[_I(i,idxStop+3,j)] = tval;
+          fluid->sT[_I(i,idxStop+4,j)] = tval*0.0;
+          fluid->sT[_I(i,idxStop+3,j)] = tval*0.5;
           fluid->sT[_I(i,idxStop+2,j)] = tval;
 
           fluid->sd[_I(i,idxStop+4,j)] = 1.0f;
@@ -242,7 +292,8 @@ int EventLoop(FILE* fp)
   unsigned int ts;
 
   paused = false;
-  viewer->_dispstring = infostring;
+  if( ! opts.show_info.empty() )
+    viewer->_dispstring = infostring;
 
   while (1) {
     //ts = SDL_GetTicks();
@@ -349,7 +400,7 @@ int EventLoop(FILE* fp)
       strName.append(".png");
       strName_.append(strName);
       if( bSaveOutput ) {
-        SaveBufferToImage( 512, 512, strName_);
+        SaveBufferToImage( opts.frameWidth, opts.frameHeight, strName_);
       }
       SDL_GL_SwapBuffers();
       frames++;
@@ -386,7 +437,11 @@ int main(int argc, char* argv[])
 
   GetOpt_pp ops(argc, argv);
 
-  ops >> OptionPresent( 's', "saveImages", bSaveOutput );
+  if(options(argc,argv,opts)) {
+    return 1;
+  }
+
+  bSaveOutput = ! (opts.save_imgs.empty() );
 
   char str[256];
   FILE *fp = NULL;

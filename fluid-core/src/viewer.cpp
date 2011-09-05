@@ -291,7 +291,10 @@ void Viewer::draw(void)
 	int i;
 
 	glClearColor(0, 0, 0, 0);
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    if( rand()%5 == 0 )
+      glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    else { }
 
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
@@ -484,10 +487,10 @@ void Viewer::viewport(int w, int h)
 	glGetDoublev(GL_PROJECTION_MATRIX, _ortho_m);
 
 	glLoadIdentity();
-    gluPerspective(45.0 /* fov */,         // TODO: Param!
+    gluPerspective(35.0 /* fov */,         // TODO: Param!
 		(GLdouble) w/h /* aspect ratio */,
-		0.0 /* zNear */,
-		10.0 /* zFar */
+        0.01 /* zNear */,
+        50.0 /* zFar */
 	);
 	glGetDoublev(GL_PROJECTION_MATRIX, _persp_m);
 

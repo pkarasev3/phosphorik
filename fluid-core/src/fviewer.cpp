@@ -165,10 +165,10 @@ float edges[12][2][3] = {
   {{-1.0f, 1.0f, -1.0f}, {1.0f, 0.0f, 0.0f}}
 };
 
-FViewer::FViewer(const std::vector<std::string> & texNames)
+FViewer::FViewer(const std::vector<std::string> & texNames, double dist)
 {
   trackball(_quat, 0.0, 0.0, 0.0, 0.0);
-  _dist = 5.0f;
+  _dist = dist;
   _fp = NULL;
   _texture_data = NULL;
 
@@ -219,13 +219,13 @@ void FViewer::init_GL(void)
   glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_T,GL_REPEAT);
   glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_R,GL_REPEAT);
 
-  int tex_steps = 16;
+  int tex_steps = 64;
   int spectrum_width      = 256*8;//tex_steps * tex_steps;
   unsigned char* data = (unsigned char*) malloc(spectrum_width*4);
   double minT = 500;
   double maxT = 5000;
-  double  FIRE_THRESH = 10.0;
-  double  MAX_FIRE_ALPHA = 0.2f;
+  double  FIRE_THRESH = 5.0;
+  double  MAX_FIRE_ALPHA = 0.15f;
   double  FULL_ON_FIRE = spectrum_width * 1.0;
   spectrum(minT, maxT, spectrum_width, data);
 
@@ -342,7 +342,9 @@ void FViewer::draw(void)
   int i;
 
   glClearColor(0, 0, 0, 0);
+
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
 
   glMatrixMode(GL_MODELVIEW);
   glLoadIdentity();
@@ -353,7 +355,10 @@ void FViewer::draw(void)
 
   glMultMatrixf(&m[0][0]);
 
-  draw_slices(m, _draw_slice_outline);
+  glPushMatrix();
+    glRotated(45.0,0,1,0);
+    draw_slices(m, _draw_slice_outline);
+  glPopMatrix();
 
   if (_dispstring != NULL) {
     glMatrixMode(GL_PROJECTION);
@@ -524,8 +529,8 @@ void FViewer::viewport(int w, int h)
   glLoadIdentity();
   gluPerspective(45.0 /* fov */,
                  (GLdouble) w/h /* aspect ratio */,
-                 0.0 /* zNear */,
-                 10.0 /* zFar */
+                 0.01 /* zNear */,
+                 30.0 /* zFar */
                  );
   glGetDoublev(GL_PROJECTION_MATRIX, _persp_m);
 

@@ -6,6 +6,12 @@ find_package(OpenGL REQUIRED)
 Find_Package(SDL REQUIRED) 
 Find_Package(SDL_image REQUIRED)
 
+find_package( Boost COMPONENTS filesystem program_options thread )
+link_directories( ${Boost_LIBRARY_DIRS} )
+include_directories( ${Boost_INCLUDE_DIRS} )
+message(STATUS "boost include dirs:  " ${Boost_INCLUDE_DIRS} )
+message(STATUS "boost library dirs:  " ${Boost_LIBRARY_DIRS} )
+
 if (NOT SDL_FOUND) 
 message(FATAL_ERROR "SDL not found!") 
 endif (NOT SDL_FOUND) 
