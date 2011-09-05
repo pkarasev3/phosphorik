@@ -617,6 +617,8 @@ void FViewer::load_frame(void)
 
   glActiveTextureARB(GL_TEXTURE0_ARB);
   glTexImage3D(GL_TEXTURE_3D, 0, GL_RGBA, _N, _N, _N, 0, GL_RGBA, GL_UNSIGNED_BYTE, _texture_data);
+
+  free( (void*) tmp );
 }
 
 void FViewer::rotate_light(int x, int y)
