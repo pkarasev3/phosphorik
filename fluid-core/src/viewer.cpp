@@ -247,7 +247,7 @@ bool Viewer::init_font(void)
 	int last;
 
 	_font_base = glGenLists(256);
-
+  return true; // hack
 	/* Need an X Display before calling any Xlib routines. */
 	display = XOpenDisplay(0);
 	if (display == 0) {
