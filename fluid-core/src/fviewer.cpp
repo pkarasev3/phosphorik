@@ -8,6 +8,8 @@
 //#include <GL/gl.h>
 //#include <GL/glu.h>
 //#include "glext.h"
+#include <opencv2/core/core.hpp>
+#include <opencv2/highgui/highgui.hpp>
 #include <SDL.h>
 #define GL_GLEXT_PROTOTYPES
 #include <SDL_opengl.h>
@@ -24,27 +26,33 @@ extern "C" {
 #include "spectrum.h"
 
 #include <iostream>
-
-// load a 256x256 RGB .RAW file as a texture
+#include <opencv2/imgproc/imgproc.hpp>
 using std::cout;
 using std::endl;
+using cv::Mat;
 
-
-GLuint LoadTextureBMP( Image* img, int wrap = 1)
+GLuint LoadTexture( const cv::Mat& img_, int wrap = 1)
 {
   GLuint texture;
   void * data;
 
-  int height = img->height;
-  int width  = img->width;
+  int height = img_.rows;
+  int width  = img_.cols;
+  Mat img;
+  if( img.channels() == 3 )
+    cv::cvtColor(img_,img,CV_RGB2BGRA);
+  else
+    cv::cvtColor(img_,img,CV_RGBA2BGRA);
+
+  assert( img.channels() == 4 && img.type() == CV_8UC4 );
 
   // allocate buffer
-  size_t nBytes = sizeof(unsigned char) * width * height * 3;
+  size_t nBytes = sizeof(unsigned char) * width * height * 4;
   cout<<"malloc and fread number of bytes: "<<nBytes<<endl;
   data = malloc( nBytes );
 
   // read texture data
-  memcpy( data, img->pixels, nBytes );
+  memcpy( data, img.ptr<unsigned char>(0), nBytes );
   cout<<"copy from img to void* data succeeded!"<<endl;
 
   // allocate a texture name
@@ -71,7 +79,7 @@ GLuint LoadTextureBMP( Image* img, int wrap = 1)
 
   // build our texture mipmaps
   gluBuild2DMipmaps( GL_TEXTURE_2D, 3, width, height,
-                     GL_RGB, GL_UNSIGNED_BYTE, data );
+                     GL_RGBA, GL_UNSIGNED_BYTE, data );
   cout<<"build 2D mipmaps succeeded!"<<endl;
 
   // free buffer
@@ -80,69 +88,13 @@ GLuint LoadTextureBMP( Image* img, int wrap = 1)
   return texture;
 }
 
-GLuint LoadTextureRAW( const char * filename, int width, int height, int wrap = 1)
-{
-  GLuint texture;
-  //int width, height;
-  void * data;
-  FILE * file;
-
-  // open texture data
-  file = fopen( filename, "rb" );
-  if ( file == NULL ) { printf("Failed to open texture file! \n "); return 0; }
-
-  // allocate buffer
-  //width = 256;
-  //height = 256;
-  size_t nBytes = sizeof(unsigned char) * width * height * 3;
-  cout<<"malloc and fread number of bytes: "<<nBytes<<endl;
-  data = malloc( nBytes );
-
-  // read texture data
-  fread( data, sizeof(unsigned char) * width * height * 3, 1, file );
-  cout<<"read succeeded!"<<endl;
-  fclose( file );
-  cout<<"file close succeeded!"<<endl;
-
-  // allocate a texture name
-  glGenTextures( 1, &texture );
-
-  // select our current texture
-  glBindTexture( GL_TEXTURE_2D, texture );
-
-  // select modulate to mix texture with color for shading
-  glTexEnvf( GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE );
-
-  // when texture area is small, bilinear filter the closest mipmap
-  glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER,
-                   GL_LINEAR_MIPMAP_NEAREST );
-  // when texture area is large, bilinear filter the first mipmap
-  glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
-
-  // if wrap is true, the texture wraps over at the edges (repeat)
-  //       ... false, the texture ends at the edges (clamp)
-  glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S,
-                   wrap ? GL_REPEAT : GL_CLAMP );
-  glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T,
-                   wrap ? GL_REPEAT : GL_CLAMP );
-
-  // build our texture mipmaps
-  gluBuild2DMipmaps( GL_TEXTURE_2D, 3, width, height,
-                     GL_RGB, GL_UNSIGNED_BYTE, data );
-  cout<<"build 2D mipmaps succeeded!"<<endl;
-
-  // free buffer
-  free( data );
-  cout<<"texture: "<<texture<<endl;
-  return texture;
-}
 
 
 
 bool canRunFragmentProgram(const char* programString);	// from FragmentUtils.cpp
 
 // cube vertices
-GLfloat cv[][3] = {
+GLfloat c_v[][3] = {
   {1.0f, 1.0f, 1.0f}, {-1.0f, 1.0f, 1.0f}, {-1.0f, -1.0f, 1.0f}, {1.0f, -1.0f, 1.0f},
   {1.0f, 1.0f, -1.0f}, {-1.0f, 1.0f, -1.0f}, {-1.0f, -1.0f, -1.0f}, {1.0f, -1.0f, -1.0f}
 };
@@ -165,10 +117,21 @@ float edges[12][2][3] = {
   {{-1.0f, 1.0f, -1.0f}, {1.0f, 0.0f, 0.0f}}
 };
 
-FViewer::FViewer(const std::vector<std::string> & texNames, double dist)
+
+namespace {
+
+double bgnd_sx;
+double bgnd_sy;
+double rigid_sx;
+double rigid_sy;
+double rigid_dTheta;
+
+}
+
+FViewer::FViewer(const TextureOptions& opts)
 {
   trackball(_quat, 0.0, 0.0, 0.0, 0.0);
-  _dist = dist;
+  _dist = opts.cam_dist;
   _fp = NULL;
   _texture_data = NULL;
 
@@ -184,9 +147,31 @@ FViewer::FViewer(const std::vector<std::string> & texNames, double dist)
   _light_dir[2] = 0.0f;
   gen_ray_templ(Fluid::N()+2);
 
-
-
+  std::vector<std::string> texNames = opts.texNames;
+  if( texNames.size() > 0 )
+  { // load background texture
+    cv::Mat img = cv::imread(texNames[0]);
+    assert( !img.empty() );
+    texture1 = LoadTexture( img );
+    image_textures.push_back(img);
+    cout << "loaded " << texNames[0] << endl;
+  }
+  if( texNames.size() > 1 )
+  { // load rigid texture
+    cv::Mat img = cv::imread(texNames[1]);
+    assert( !img.empty() );
+    texture2 = LoadTexture( img );
+    image_textures.push_back(img);
+    cout << "loaded " << texNames[1] << endl;
+  }
+  theta   = 0.0;
+  bgnd_sx = opts.scale_bgnd_x;
+  bgnd_sy = opts.scale_bgnd_y;
+  rigid_sx = opts.rigid_scale;
+  rigid_sy = opts.rigid_scale;
+  rigid_dTheta = opts.rigid_speed;
 }
+
 
 FViewer::~FViewer()
 {
@@ -358,9 +343,11 @@ void FViewer::draw(void)
   glMultMatrixf(&m[0][0]);
 
   glPushMatrix();
-    glRotated(45.0,0,1,0);
-    draw_slices(m, _draw_slice_outline);
+  glRotated(45.0,0,1,0);
+  draw_slices(m, _draw_slice_outline);
   glPopMatrix();
+
+  draw_cube();
 
   if (_dispstring != NULL) {
     glMatrixMode(GL_PROJECTION);
@@ -381,7 +368,51 @@ void FViewer::draw(void)
   }
 }
 
+void FViewer::draw_cube(void)
+{
+  if( image_textures.empty() ) {
+    return;
+  }
 
+  glDisable(GL_TEXTURE_3D);
+  glDisable(GL_FRAGMENT_PROGRAM_ARB);
+  glEnable(GL_TEXTURE_2D);
+  glBlendFunc(GL_SRC_COLOR, GL_ONE_MINUS_SRC_COLOR);
+
+  glPushMatrix(); // Draw background
+    glScaled(bgnd_sx,bgnd_sy,1.0);
+    glTranslatef( 0.0, 0.0, 2.0 );
+    glColor3f( 1.0, 1.0, 1.0 );
+    glBindTexture( GL_TEXTURE_2D, texture1 );
+    glBegin( GL_QUADS );
+    glTexCoord2d(0.0,0.0); glVertex3f(-1.0,+1.0,0.0);
+    glTexCoord2d(1.0,0.0); glVertex3f(+1.0,+1.0,0.0);
+    glTexCoord2d(1.0,1.0); glVertex3f(+1.0,-1.0,0.0);
+    glTexCoord2d(0.0,1.0); glVertex3f(-1.0,-1.0,0.0);//size of background image
+    glEnd();
+  glPopMatrix();
+
+  if( image_textures.size() >= 2 ) {
+    cout << "theta=" << theta << ", dTheta = " << rigid_dTheta << endl;
+    glPushMatrix();
+      glRotatef( theta, 0.0f, 0.0f, 1.0f );
+      glTranslatef( rigid_sx, -rigid_sx, 0.0 );
+      glRotatef( theta, 0.0,0.0, 1.0 );
+      glColor3f( 1.0, 1.0, 1.0 );//, 0.5 );
+      glBindTexture( GL_TEXTURE_2D, texture2 );
+      glBegin( GL_QUADS );
+      glTexCoord2d(0.0,0.0); glVertex3f(-1.0,-1.0,0.0);
+      glTexCoord2d(1.0,0.0); glVertex3f(+1.0,-1.0,0.0);
+      glTexCoord2d(1.0,1.0); glVertex3f(+1.0,+1.0,0.0);
+      glTexCoord2d(0.0,1.0); glVertex3f(-1.0,+1.0,0.0);
+      glEnd();
+      glPopMatrix();
+  }
+  glDisable(GL_TEXTURE_2D);
+
+  theta += rigid_dTheta; //increment the rotation
+
+}
 
 
 class Convexcomp
@@ -406,9 +437,9 @@ void FViewer::draw_slices(float m[][4], bool frame)
   viewdir.Normalize();
   // find cube vertex that is closest to the viewer
   for (i=0; i<8; i++) {
-    float x = cv[i][0] + viewdir[0];
-    float y = cv[i][1] + viewdir[1];
-    float z = cv[i][2] + viewdir[2];
+    float x = c_v[i][0] + viewdir[0];
+    float y = c_v[i][1] + viewdir[1];
+    float z = c_v[i][2] + viewdir[2];
     if ((x>=-1.0f)&&(x<=1.0f)
         &&(y>=-1.0f)&&(y<=1.0f)
         &&(z>=-1.0f)&&(z<=1.0f))
@@ -424,7 +455,7 @@ void FViewer::draw_slices(float m[][4], bool frame)
   // (a,b,c), the plane normal, are given by viewdir
   // d is the parameter along the view direction. the first d is given by
   // inserting previously found vertex into the plane equation
-  float d0 = -(viewdir[0]*cv[i][0] + viewdir[1]*cv[i][1] + viewdir[2]*cv[i][2]);
+  float d0 = -(viewdir[0]*c_v[i][0] + viewdir[1]*c_v[i][1] + viewdir[2]*c_v[i][2]);
   float dd = 2*d0/64.0f;
   int n = 0;
   double rand_theta   = 1.0;

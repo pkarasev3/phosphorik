@@ -9,6 +9,19 @@
 #include "fluid.h"
 #include "imageloader.h"
 #include <string>
+#include <opencv2/core/core.hpp>
+
+struct TextureOptions
+{
+  TextureOptions():scale_bgnd_x(1.0),scale_bgnd_y(1.0),cam_dist(5.0), rigid_speed(0.5){ }
+  double scale_bgnd_x;
+  double scale_bgnd_y;
+  double cam_dist;
+  double rigid_speed;
+  double rigid_scale;
+  std::vector<std::string> texNames;
+};
+
 class FViewer
 {
 private:
@@ -26,7 +39,7 @@ private:
 	int _N;					// data resolution
 	int _nframes;			// number of frames in data file
 	int _cur_frame;
-  std::vector<Image*> image_textures;
+  std::vector<cv::Mat> image_textures;
 
   // OpenGL variables
 	unsigned char* _texture_data;
@@ -58,7 +71,7 @@ private:
 	bool init_font(void);
 
 public:
-  FViewer(const std::vector<std::string> & texNames, double dist = 5.0);
+  FViewer( const TextureOptions& opts );
   ~FViewer();
 
   void rotate_light(int x, int y);		// set light orientation according to given coordinates (trackball)

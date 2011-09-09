@@ -44,6 +44,12 @@ struct Options {
   string load_data_file;
   string save_data_file;
   string show_info;
+  string background_image;
+  string rigid_obj_image;
+  double rigid_obj_speed;
+  double rigid_obj_scale;
+  double cam_to_bgnd_scaleX;
+  double cam_to_bgnd_scaleY;
   double cam_to_fire_dist;
 };
 
@@ -57,7 +63,13 @@ int options(int ac, char ** av, Options& opts) {
       ("saveimgs,s", po::value<string>(&opts.save_imgs)->default_value(""),"save images , non-empty for 'yes' ")
       ("load,l", po::value<string>(&opts.load_data_file)->default_value(""),"load data file physics")
       ("write,w", po::value<string>(&opts.save_data_file)->default_value(""),"save data file physics")
+      ("background,b", po::value<string>(&opts.background_image)->default_value(""),"filename for background image")
+      ("rigidobject,r", po::value<string>(&opts.rigid_obj_image)->default_value(""),"filename for rigid motion image")
+      ("rigidSpeed,R", po::value<double>(&opts.rigid_obj_speed)->default_value(1.0),"speed factor for rigid motion")
+      ("rigidScale,L", po::value<double>(&opts.rigid_obj_scale)->default_value(1.0),"scale factor for rigid motion")
       ("distance,d", po::value<double>(&opts.cam_to_fire_dist)->default_value(5.0),"range to fire origin")
+      ("scale_bgndX,X", po::value<double>(&opts.cam_to_bgnd_scaleX)->default_value(10.0),"scale of background origin, X")
+      ("scale_bgndY,Y", po::value<double>(&opts.cam_to_bgnd_scaleY)->default_value(10.0),"scale of background origin, Y")
       ("infodisplay,i", po::value<string>(&opts.show_info)->default_value(""),"show fps, #frames info at top");
 
   po::variables_map vm;
@@ -185,7 +197,21 @@ bool init(void)
 
   /* Viewer */
   std::vector<std::string> strNames(0);
-  viewer = new FViewer( strNames, opts.cam_to_fire_dist);
+  if( !opts.background_image.empty() ) {
+    strNames.push_back(opts.background_image);
+  }
+  if( !opts.rigid_obj_image.empty() ) {
+    strNames.push_back(opts.rigid_obj_image);
+  }
+  TextureOptions tex_opts;
+  tex_opts.cam_dist = opts.cam_to_fire_dist;
+  tex_opts.texNames = strNames;
+  tex_opts.scale_bgnd_x = opts.cam_to_bgnd_scaleX;
+  tex_opts.scale_bgnd_y = opts.cam_to_bgnd_scaleY;
+  tex_opts.rigid_speed  = opts.rigid_obj_speed;
+  tex_opts.rigid_scale  = opts.rigid_obj_scale;
+
+  viewer = new FViewer( tex_opts );
 
   viewer->viewport(screen->w, screen->h);
 
