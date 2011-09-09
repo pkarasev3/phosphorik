@@ -393,7 +393,7 @@ void FViewer::draw_cube(void)
   glPopMatrix();
 
   if( image_textures.size() >= 2 ) {
-    cout << "theta=" << theta << ", dTheta = " << rigid_dTheta << endl;
+
     glPushMatrix();
       glRotatef( theta, 0.0f, 0.0f, 1.0f );
       glTranslatef( rigid_sx, -rigid_sx, 0.0 );
