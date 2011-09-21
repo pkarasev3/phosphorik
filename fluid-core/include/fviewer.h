@@ -43,6 +43,7 @@ public:
   }
 
 private:
+  TextureOptions tex_draw_opts;
   GLuint texture1;
   GLuint texture2;
   float theta;

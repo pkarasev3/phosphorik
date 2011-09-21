@@ -5,9 +5,6 @@ include_directories(include ${SDL_IMAGE_INCLUDE_DIR})
 set(CORE3DLIBS ${GLUT_LIBRARY} ${OPENGL_LIBRARY} m)
 set(SDL_LIBS  ${SDL_LIBRARY} ${SDLIMAGE_LIBRARY} SDLmain )
 
-#add_executable(smoke64-demo  smoke64-demo.cpp )
-#target_link_libraries(smoke64-demo fluid-core ${OpenCV_LIBS} ${CORE3DLIBS} ${SDL_LIBS} )
-
 add_executable(fire32-demo  fire32-demo.cpp )
 target_link_libraries(fire32-demo fluid-core  ${Boost_LIBRARIES}
                                  ${OpenCV_LIBS} ${CORE3DLIBS} ${SDL_LIBS} )

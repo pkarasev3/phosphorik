@@ -66,6 +66,7 @@ struct Options {
   string rigid_obj_image;
   string fire_disp_mode;
   string rigid_disp_mode;
+  string directory_to_save_in;
   double rigid_obj_speed;
   double rigid_obj_scale;
   double cam_to_bgnd_scaleX;
@@ -94,8 +95,9 @@ int options(int ac, char ** av, Options& opts) {
       ("scale_bgndX,X", po::value<double>(&opts.cam_to_bgnd_scaleX)->default_value(10.0),"scale of background origin, X")
       ("scale_bgndY,Y", po::value<double>(&opts.cam_to_bgnd_scaleY)->default_value(10.0),"scale of background origin, Y")
       ("infodisplay,i", po::value<string>(&opts.show_info)->default_value(""),"show fps, #frames info at top")
-      ("firedisplaymode,F", po::value<string>(&opts.fire_disp_mode)->default_value(""),"mode of fire display")
-      ("rigiddisplaymode,M", po::value<string>(&opts.rigid_disp_mode)->default_value(""),"mode of rigid display");;
+      ("firedisplaymode,F", po::value<string>(&opts.fire_disp_mode)->default_value("on"),"mode of fire display")
+      ("rigiddisplaymode,M", po::value<string>(&opts.rigid_disp_mode)->default_value("circle"),"mode of rigid display")
+      ("dirsave,Z", po::value<string>(&opts.directory_to_save_in)->default_value("./"),"dir to save images, 'zapisat' ");
 
   po::variables_map vm;
   po::store(po::parse_command_line(ac, av, desc), vm);
@@ -234,11 +236,14 @@ bool init(void)
   TextureOptions tex_opts;
   tex_opts.cam_dist = opts.cam_to_fire_dist;
   tex_opts.texNames = strNames;
-  tex_opts.scale_bgnd_x = opts.cam_to_bgnd_scaleX;
-  tex_opts.scale_bgnd_y = opts.cam_to_bgnd_scaleY;
-  tex_opts.rigid_speed  = opts.rigid_obj_speed;
-  tex_opts.rigid_scale  = opts.rigid_obj_scale;
+  tex_opts.scale_bgnd_x    = opts.cam_to_bgnd_scaleX;
+  tex_opts.scale_bgnd_y    = opts.cam_to_bgnd_scaleY;
+  tex_opts.rigid_speed     = opts.rigid_obj_speed;
+  tex_opts.rigid_scale     = opts.rigid_obj_scale;
+  tex_opts.fire_disp_mode  = opts.fire_disp_mode;
+  tex_opts.rigid_disp_mode = opts.rigid_disp_mode;
 
+ // todo- use boost::shared_ptr
   viewer = new FViewer( tex_opts );
 
   viewer->viewport(screen->w, screen->h);
@@ -445,9 +450,12 @@ int EventLoop(FILE* fp)
       stm << frames;
       std::string strName = stm.str();
       iDrawTexFlipSign *= -1;
-      while( strName.size() < 8 )
+      while( strName.size() < 6 )
         strName.insert( strName.begin(), '0' );
-      string tmp = "fire-out/";
+      string tmp = opts.directory_to_save_in;
+      if( tmp[tmp.size()-1] != '/' ) {
+        tmp = tmp + "/";
+      }
       tmp.append( strName );
       strName = tmp;
       std::string strName_ = "";

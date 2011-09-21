@@ -118,16 +118,6 @@ float edges[12][2][3] = {
 };
 
 
-namespace {
-
-double bgnd_sx;
-double bgnd_sy;
-double rigid_sx;
-double rigid_sy;
-double rigid_dTheta;
-
-}
-
 FViewer::FViewer(const TextureOptions& opts)
 {
   trackball(_quat, 0.0, 0.0, 0.0, 0.0);
@@ -165,11 +155,8 @@ FViewer::FViewer(const TextureOptions& opts)
     cout << "loaded " << texNames[1] << endl;
   }
   theta   = 0.0;
-  bgnd_sx = opts.scale_bgnd_x;
-  bgnd_sy = opts.scale_bgnd_y;
-  rigid_sx = opts.rigid_scale;
-  rigid_sy = opts.rigid_scale;
-  rigid_dTheta = opts.rigid_speed;
+
+  tex_draw_opts = opts; // use this to keep a hold of texture!
 }
 
 
@@ -342,12 +329,17 @@ void FViewer::draw(void)
 
   glMultMatrixf(&m[0][0]);
 
-  glPushMatrix();
-  glRotated(45.0,0,1,0);
-  draw_slices(m, _draw_slice_outline);
-  glPopMatrix();
+  if( 0 != tex_draw_opts.fire_disp_mode.compare("off") )
+  {
+    glPushMatrix();
+    {
+      glRotated(45.0,0,1,0);
+      draw_slices(m, _draw_slice_outline);
+    }
+    glPopMatrix();
+  }
 
-  draw_cube();
+  draw_cube(); // draw the things besides fire (background, rigid object(s)
 
   if (_dispstring != NULL) {
     glMatrixMode(GL_PROJECTION);
@@ -380,37 +372,48 @@ void FViewer::draw_cube(void)
   glBlendFunc(GL_SRC_COLOR, GL_ONE_MINUS_SRC_COLOR);
 
   glPushMatrix(); // Draw background
-    glScaled(bgnd_sx,bgnd_sy,1.0);
+    glScaled(tex_draw_opts.scale_bgnd_x,tex_draw_opts.scale_bgnd_y,1.0);
     glTranslatef( 0.0, 0.0, 2.0 );
     glColor3f( 1.0, 1.0, 1.0 );
     glBindTexture( GL_TEXTURE_2D, texture1 );
     glBegin( GL_QUADS );
-    glTexCoord2d(0.0,0.0); glVertex3f(-1.0,+1.0,0.0);
-    glTexCoord2d(1.0,0.0); glVertex3f(+1.0,+1.0,0.0);
-    glTexCoord2d(1.0,1.0); glVertex3f(+1.0,-1.0,0.0);
-    glTexCoord2d(0.0,1.0); glVertex3f(-1.0,-1.0,0.0);//size of background image
+      glTexCoord2d(0.0,0.0); glVertex3f(-1.0,+1.0,0.0);
+      glTexCoord2d(1.0,0.0); glVertex3f(+1.0,+1.0,0.0);
+      glTexCoord2d(1.0,1.0); glVertex3f(+1.0,-1.0,0.0);
+      glTexCoord2d(0.0,1.0); glVertex3f(-1.0,-1.0,0.0);
     glEnd();
   glPopMatrix();
 
   if( image_textures.size() >= 2 ) {
-
     glPushMatrix();
+    if( 0 == tex_draw_opts.rigid_disp_mode.compare("line") )
+    {
+      float tx = sin( theta * CV_PI / 180.0 ) * tex_draw_opts.rigid_scale;
+      glTranslatef( tx, 1.0, 0.0 );
+    }
+    else
+    { // draw circle-like pattern
       glRotatef( theta, 0.0f, 0.0f, 1.0f );
-      glTranslatef( rigid_sx, -rigid_sx, 0.0 );
+      glTranslatef( tex_draw_opts.rigid_scale, -tex_draw_opts.rigid_scale, 0.0 );
       glRotatef( theta, 0.0,0.0, 1.0 );
-      glColor3f( 1.0, 1.0, 1.0 );//, 0.5 );
-      glBindTexture( GL_TEXTURE_2D, texture2 );
-      glBegin( GL_QUADS );
+    }
+
+    glColor3f( 1.0, 1.0, 1.0 );
+    glBindTexture( GL_TEXTURE_2D, texture2 );
+    glBegin( GL_QUADS );
       glTexCoord2d(0.0,0.0); glVertex3f(-1.0,-1.0,0.0);
       glTexCoord2d(1.0,0.0); glVertex3f(+1.0,-1.0,0.0);
       glTexCoord2d(1.0,1.0); glVertex3f(+1.0,+1.0,0.0);
       glTexCoord2d(0.0,1.0); glVertex3f(-1.0,+1.0,0.0);
-      glEnd();
-      glPopMatrix();
+    glEnd();
+    glPopMatrix();
   }
   glDisable(GL_TEXTURE_2D);
 
-  theta += rigid_dTheta; //increment the rotation
+  theta += tex_draw_opts.rigid_speed; //increment the rotation
+  if( theta > 180.0 ) {
+    theta = theta - 360.0;
+  }
 
 }
 

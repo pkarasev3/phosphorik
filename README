@@ -1,6 +1,23 @@
 initilized from: http://graphics.ethz.ch/teaching/former/imagesynthesis_06/miniprojects/p3/index.html
 
-Running it, from bin folder: 
-1) needs image_0003.bmp, image_0004.bmp, and fire.fp (TODO- get rid of this nonsense)
-2) ./fire32-demo -w output.dat
-3) hit escape to stop and save the frames. pause/resume with spacebar. 
+
+# Case 1: 256x256 image, background, but no fire
+./fire32-demo -l f32pk.dat -W 256 -H 256 -d 10 -F off -b office.png
+
+
+# Case 2: add rigid object. 
+#***Important: by not drawing the fire, the drawing is orders of magnitude faster.
+might need to lower the speed! But, it will be slow if saving images. ***
+./fire32-demo -l f32pk.dat -W 256 -H 256 -d 10 -F off -b office.png -r sky.png -R 0.01
+
+
+# Case 3: rigid object in a line (sinusoid), scaled by the "L"
+./fire32-demo -l f32pk.dat -W 256 -H 256 -d 10 -F off -b office.png -r sky.png -R 0.01 -M line -L 3
+
+
+# Case 4: fire plus rigid in a line, together 
+./fire32-demo -l f32pk.dat -W 256 -H 256 -d 10 -b office.png -r sky.png -R 0.5 -M line -L 3
+
+
+# Case 5: same as 4 but now save images to diretory (Z flag) 
+./fire32-demo -l f32pk.dat -W 256 -H 256 -d 10 -b office.png -r sky.png -R 0.5 -M line -L 3 -s 1 -Z  ./tmp
