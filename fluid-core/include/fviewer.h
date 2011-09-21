@@ -20,10 +20,28 @@ struct TextureOptions
   double rigid_speed;
   double rigid_scale;
   std::vector<std::string> texNames;
+  std::string fire_disp_mode;
+  std::string rigid_disp_mode;
 };
 
 class FViewer
 {
+public:
+  /** return vector of allowed strings for toggling how fire drawing behaves */
+  static std::vector<std::string> get_fire_modes() {
+    std::vector<std::string> fire_modes;
+    fire_modes.push_back("off");
+    fire_modes.push_back("on");
+    return fire_modes;
+  }
+  /** return vector of allowed strings for toggling how rigid drawing behaves */
+  static std::vector<std::string> get_rigid_modes() {
+    std::vector<std::string> rigid_modes;
+    rigid_modes.push_back("circle");
+    rigid_modes.push_back("line");
+    return rigid_modes;
+  }
+
 private:
   GLuint texture1;
   GLuint texture2;

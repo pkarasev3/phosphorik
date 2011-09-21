@@ -1,4 +1,7 @@
+#if 0  // This is deprecated !!!
+
 /* Author: Johannes Schmid and Ingemar Rask, 2006, johnny@grob.org */
+
 #include <stdlib.h>
 #include <math.h>
 #include <assert.h>
@@ -760,3 +763,4 @@ inline void Viewer::light_ray(int x, int y, int z, int n, float decay, float* de
 	} while ((xx>=0)&&(xx<n)&&(yy>=0)&&(yy<n)&&(zz>=0)&&(zz<n));
 }
 
+#endif

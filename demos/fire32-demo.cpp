@@ -38,6 +38,24 @@ namespace {
 enum { max_length = 1024 };
 
 struct Options {
+  Options() {
+
+    fire_modes  = FViewer::get_fire_modes();
+    rigid_modes = FViewer::get_rigid_modes();
+
+  }
+
+  void print_allowed_modes() {
+    cout << " allowed fire mode strings: " << endl;
+    for( int k = 0; k < (int) fire_modes.size(); k++ ) {
+      cout << fire_modes[k] << endl;
+    }
+    cout << " allowed rigid mode strings: " << endl;
+    for( int k = 0; k < (int) fire_modes.size(); k++ ) {
+      cout << rigid_modes[k] << endl;
+    }
+  }
+
   int frameWidth;
   int frameHeight;
   string save_imgs;
@@ -46,11 +64,16 @@ struct Options {
   string show_info;
   string background_image;
   string rigid_obj_image;
+  string fire_disp_mode;
+  string rigid_disp_mode;
   double rigid_obj_speed;
   double rigid_obj_scale;
   double cam_to_bgnd_scaleX;
   double cam_to_bgnd_scaleY;
   double cam_to_fire_dist;
+
+  vector<string> fire_modes;
+  vector<string> rigid_modes;
 };
 
 int options(int ac, char ** av, Options& opts) {
@@ -70,7 +93,9 @@ int options(int ac, char ** av, Options& opts) {
       ("distance,d", po::value<double>(&opts.cam_to_fire_dist)->default_value(5.0),"range to fire origin")
       ("scale_bgndX,X", po::value<double>(&opts.cam_to_bgnd_scaleX)->default_value(10.0),"scale of background origin, X")
       ("scale_bgndY,Y", po::value<double>(&opts.cam_to_bgnd_scaleY)->default_value(10.0),"scale of background origin, Y")
-      ("infodisplay,i", po::value<string>(&opts.show_info)->default_value(""),"show fps, #frames info at top");
+      ("infodisplay,i", po::value<string>(&opts.show_info)->default_value(""),"show fps, #frames info at top")
+      ("firedisplaymode,F", po::value<string>(&opts.fire_disp_mode)->default_value(""),"mode of fire display")
+      ("rigiddisplaymode,M", po::value<string>(&opts.rigid_disp_mode)->default_value(""),"mode of rigid display");;
 
   po::variables_map vm;
   po::store(po::parse_command_line(ac, av, desc), vm);
@@ -78,8 +103,11 @@ int options(int ac, char ** av, Options& opts) {
 
   if (vm.count("help")) {
     cout << desc << "\n";
+    opts.print_allowed_modes();
     return 1;
   }
+
+  opts.print_allowed_modes();
 
   return 0;
 
