@@ -20,6 +20,7 @@ struct TextureOptions
   double rigid_speed;
   double rigid_scale;
   double brightness;
+  double bgnd_alpha;
   bool   blend;
   std::vector<std::string> texNames;
   std::string fire_disp_mode;

@@ -31,32 +31,44 @@ using std::cout;
 using std::endl;
 using cv::Mat;
 using std::vector;
-GLuint LoadTexture( const cv::Mat& img_, int wrap = 1, double alpha = 1)
+GLuint LoadTexture( const cv::Mat& img_, int wrap = 1, double alpha = -1)
 {
   GLuint texture;
-  void * data;
+  unsigned char * data;
 
   int height = img_.rows;
   int width  = img_.cols;
   Mat img;
-  if( img.channels() == 3 )
+  if( img.channels() == 3 ) {
+    cout << "No alpha channel in image! Adding one ..." << endl;
     cv::cvtColor(img_,img,CV_RGB2BGRA);
-  else
+    // assign the alpha scaling to alpha channel
+    img = img * alpha;
+  } else {
     cv::cvtColor(img_,img,CV_RGBA2BGRA);
+  }
 
   assert( img.channels() == 4 && img.type() == CV_8UC4 );
-
-  // assign the alpha scaling to alpha channel
-  img = img * alpha;
-
+  cv::imwrite("foo.png",img);
   // allocate buffer
   size_t nBytes = sizeof(unsigned char) * width * height * 4;
   cout<<"malloc and fread number of bytes: "<<nBytes<<endl;
-  data = malloc( nBytes );
+  data = (unsigned char*) malloc( nBytes );
 
   // read texture data
   memcpy( data, img.ptr<unsigned char>(0), nBytes );
   cout<<"copy from img to void* data succeeded!"<<endl;
+
+  for( int k = 0; k < (4*width*height); k+=4 ) {
+      unsigned char rval = (unsigned char) data[k];
+      unsigned char gval = (unsigned char) data[k+1];
+      unsigned char bval = (unsigned char) data[k+2];
+      if( rval + gval + bval < 2 ) { // black image => zero alpha!
+        data[k+3] = (unsigned char) 0;
+      } else if (alpha >= 0 ) {
+        data[k+3] = (unsigned char) alpha * 255.0;
+      }
+  }
 
   // allocate a texture name
   glGenTextures( 1, &texture );
@@ -148,7 +160,7 @@ FViewer::FViewer(const TextureOptions& opts)
   { // load background texture
     cv::Mat img = cv::imread(texNames[0]);
     assert( !img.empty() );
-    texture1 = LoadTexture( img, 1, 1-tex_draw_opts.brightness);
+    texture1 = LoadTexture( img, 1, tex_draw_opts.bgnd_alpha);
     image_textures.push_back(img);
     cout << "loaded " << texNames[0] << endl;
   }
@@ -156,7 +168,7 @@ FViewer::FViewer(const TextureOptions& opts)
   { // load rigid texture
     cv::Mat img = cv::imread(texNames[1]);
     assert( !img.empty() );
-    texture2 = LoadTexture( img, 1, 1);
+    texture2 = LoadTexture( img );
     image_textures.push_back(img);
     cout << "loaded " << texNames[1] << endl;
   }
@@ -380,8 +392,8 @@ void FViewer::draw_cube(void)
   glEnable(GL_TEXTURE_2D);
 
 
-  if( tex_draw_opts.blend ) {
-    glBlendFunc(GL_SRC_COLOR, GL_ONE_MINUS_SRC_COLOR);
+  if( 1 || tex_draw_opts.blend ) {
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE);
   } else {
     glEnable(GL_DEPTH_TEST);
   }
@@ -399,8 +411,10 @@ void FViewer::draw_cube(void)
     glEnd();
   glPopMatrix();
 
+  for( int hack = 0; hack < 5 ; hack++ ) {
+      glBlendFunc(GL_SRC_COLOR, GL_ONE);
   if( image_textures.size() >= 2 ) {
-    glDisable(GL_BLEND);
+    //glDisable(GL_BLEND);
     glPushMatrix();
     if( 0 == tex_draw_opts.rigid_disp_mode.compare("line") )
     {
@@ -423,7 +437,8 @@ void FViewer::draw_cube(void)
       glTexCoord2d(0.0,1.0); glVertex3f(-1.0,+1.0,0.0);
     glEnd();
     glPopMatrix();
-    glEnable(GL_BLEND);
+   // glEnable(GL_BLEND);
+  }
   }
   glDisable(GL_TEXTURE_2D);
   glDisable(GL_DEPTH_TEST);
