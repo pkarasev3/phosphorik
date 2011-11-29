@@ -19,6 +19,8 @@ struct TextureOptions
   double cam_dist;
   double rigid_speed;
   double rigid_scale;
+  double brightness;
+  bool   blend;
   std::vector<std::string> texNames;
   std::string fire_disp_mode;
   std::string rigid_disp_mode;

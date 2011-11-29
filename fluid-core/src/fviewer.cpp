@@ -30,8 +30,8 @@ extern "C" {
 using std::cout;
 using std::endl;
 using cv::Mat;
-
-GLuint LoadTexture( const cv::Mat& img_, int wrap = 1)
+using std::vector;
+GLuint LoadTexture( const cv::Mat& img_, int wrap = 1, double alpha = 1)
 {
   GLuint texture;
   void * data;
@@ -45,6 +45,9 @@ GLuint LoadTexture( const cv::Mat& img_, int wrap = 1)
     cv::cvtColor(img_,img,CV_RGBA2BGRA);
 
   assert( img.channels() == 4 && img.type() == CV_8UC4 );
+
+  // assign the alpha scaling to alpha channel
+  img = img * alpha;
 
   // allocate buffer
   size_t nBytes = sizeof(unsigned char) * width * height * 4;
@@ -129,7 +132,10 @@ FViewer::FViewer(const TextureOptions& opts)
   _dispstring = NULL;
 
   fragProgFilename = "fire.fp";
-  init_GL();
+  tex_draw_opts = opts; // use this to keep a hold of texture!
+  cout << "brightness = " << tex_draw_opts.brightness << endl;
+
+  init_GL(); // Careful about order of this function ...
   init_font();
 
   _light_dir[0] = -1.0f;
@@ -142,7 +148,7 @@ FViewer::FViewer(const TextureOptions& opts)
   { // load background texture
     cv::Mat img = cv::imread(texNames[0]);
     assert( !img.empty() );
-    texture1 = LoadTexture( img );
+    texture1 = LoadTexture( img, 1, 1-tex_draw_opts.brightness);
     image_textures.push_back(img);
     cout << "loaded " << texNames[0] << endl;
   }
@@ -150,13 +156,13 @@ FViewer::FViewer(const TextureOptions& opts)
   { // load rigid texture
     cv::Mat img = cv::imread(texNames[1]);
     assert( !img.empty() );
-    texture2 = LoadTexture( img );
+    texture2 = LoadTexture( img, 1, 1);
     image_textures.push_back(img);
     cout << "loaded " << texNames[1] << endl;
   }
   theta   = 0.0;
 
-  tex_draw_opts = opts; // use this to keep a hold of texture!
+
 }
 
 
@@ -197,7 +203,8 @@ void FViewer::init_GL(void)
   double minT = 500;
   double maxT = 5000;
   double  FIRE_THRESH = 5.0;
-  double  MAX_FIRE_ALPHA = 0.15f;
+  double  MAX_FIRE_ALPHA = tex_draw_opts.brightness;
+  cout << " max fire alpha = " << tex_draw_opts.brightness << endl;
   double  FULL_ON_FIRE = spectrum_width * 1.0;
   spectrum(minT, maxT, spectrum_width, data);
 
@@ -329,6 +336,8 @@ void FViewer::draw(void)
 
   glMultMatrixf(&m[0][0]);
 
+  draw_cube(); // draw the things besides fire (background, rigid object(s)
+
   if( 0 != tex_draw_opts.fire_disp_mode.compare("off") )
   {
     glPushMatrix();
@@ -339,7 +348,7 @@ void FViewer::draw(void)
     glPopMatrix();
   }
 
-  draw_cube(); // draw the things besides fire (background, rigid object(s)
+
 
   if (_dispstring != NULL) {
     glMatrixMode(GL_PROJECTION);
@@ -369,7 +378,13 @@ void FViewer::draw_cube(void)
   glDisable(GL_TEXTURE_3D);
   glDisable(GL_FRAGMENT_PROGRAM_ARB);
   glEnable(GL_TEXTURE_2D);
-  glBlendFunc(GL_SRC_COLOR, GL_ONE_MINUS_SRC_COLOR);
+
+
+  if( tex_draw_opts.blend ) {
+    glBlendFunc(GL_SRC_COLOR, GL_ONE_MINUS_SRC_COLOR);
+  } else {
+    glEnable(GL_DEPTH_TEST);
+  }
 
   glPushMatrix(); // Draw background
     glScaled(tex_draw_opts.scale_bgnd_x,tex_draw_opts.scale_bgnd_y,1.0);
@@ -385,6 +400,7 @@ void FViewer::draw_cube(void)
   glPopMatrix();
 
   if( image_textures.size() >= 2 ) {
+    glDisable(GL_BLEND);
     glPushMatrix();
     if( 0 == tex_draw_opts.rigid_disp_mode.compare("line") )
     {
@@ -407,8 +423,10 @@ void FViewer::draw_cube(void)
       glTexCoord2d(0.0,1.0); glVertex3f(-1.0,+1.0,0.0);
     glEnd();
     glPopMatrix();
+    glEnable(GL_BLEND);
   }
   glDisable(GL_TEXTURE_2D);
+  glDisable(GL_DEPTH_TEST);
 
   theta += tex_draw_opts.rigid_speed; //increment the rotation
   if( theta > 180.0 ) {
@@ -453,6 +471,7 @@ void FViewer::draw_slices(float m[][4], bool frame)
   assert(i != 8);
 
   glBlendFunc(GL_SRC_ALPHA, GL_ONE);
+  //glBlendFunc(GL_SRC_COLOR, GL_ONE_MINUS_SRC_COLOR);
   glDisable(GL_DEPTH_TEST);
   // our slices are defined by the plane equation a*x + b*y +c*z + d = 0
   // (a,b,c), the plane normal, are given by viewdir
