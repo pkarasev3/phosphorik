@@ -51,7 +51,7 @@ struct Options {
             cout << fire_modes[k] << endl;
         }
         cout << " allowed rigid mode strings: " << endl;
-        for( int k = 0; k < (int) fire_modes.size(); k++ ) {
+        for( int k = 0; k < (int) rigid_modes.size(); k++ ) {
             cout << rigid_modes[k] << endl;
         }
     }
@@ -76,7 +76,7 @@ struct Options {
     bool   blend;
     int    numberOfFrames;
     double bgnd_alpha;
-
+    int    indexOfFrozenFire;
     vector<string> fire_modes;
     vector<string> rigid_modes;
 };
@@ -102,9 +102,10 @@ int options(int ac, char ** av, Options& opts) {
             ("background_alpha,a", po::value<double>(&opts.bgnd_alpha)->default_value(0.7),"background alpha [0,1]")
             ("infodisplay,i", po::value<string>(&opts.show_info)->default_value(""),"show fps, #frames info at top")
             ("firedisplaymode,F", po::value<string>(&opts.fire_disp_mode)->default_value("on"),"mode of fire display")
-            ("rigiddisplaymode,M", po::value<string>(&opts.rigid_disp_mode)->default_value("circle"),"mode of rigid display")
+            ("rigiddisplaymode,M", po::value<string>(&opts.rigid_disp_mode)->default_value("off"),"mode of rigid display")
             ("blend,B", po::value<bool>(&opts.blend)->default_value(0),"blend it !?")
             ("numFrames,N", po::value<int>(&opts.numberOfFrames)->default_value(20000),"number of frames to save max")
+            ("simFrameFreeze,E", po::value<int>(&opts.indexOfFrozenFire)->default_value(200),"index into fire simulation to freeze at when in 'frozen' mode.")
             ("dirsave,Z", po::value<string>(&opts.directory_to_save_in)->default_value("./"),"dir to save images, 'zapisat' ");
 
     po::variables_map vm;
@@ -446,10 +447,15 @@ int EventLoop(FILE* fp)
         {
             if (mode == SIMULATE) {
                 viewer->frame_from_sim(fluid);
-                if (fp)
+                if (fp) {
                     fluid->store(fp);
-            } else
+                }
+            } else if( 0 != opts.fire_disp_mode.compare("frozen") ) {
                 viewer->load_frame();
+            } else { // frozen! don't load after M frames
+                if( frames < opts.indexOfFrozenFire )
+                    viewer->load_frame();
+            }
             redraw = true;
             update = wasupdate;
             wasupdate = false;
@@ -459,7 +465,11 @@ int EventLoop(FILE* fp)
         { /* Call main draw loop */
             viewer->draw();
             std::ostringstream stm;
-            stm << frames;
+            int idx_stamp = frames;
+            if( 0 == opts.fire_disp_mode.compare("frozen") ) {
+              idx_stamp = idx_stamp - opts.indexOfFrozenFire;
+            }
+            stm << idx_stamp;
             std::string strName = stm.str();
             iDrawTexFlipSign *= -1;
             while( strName.size() < 6 )
@@ -473,13 +483,16 @@ int EventLoop(FILE* fp)
             std::string strName_ = "";
             strName.append(".png");
             strName_.append(strName);
-            if( bSaveOutput ) {
+            if( bSaveOutput && (0 != opts.fire_disp_mode.compare("frozen") ) ) {
                 SaveBufferToImage( opts.frameWidth, opts.frameHeight, strName_);
+            } else if ( bSaveOutput ) {
+                if( frames >= opts.indexOfFrozenFire )
+                    SaveBufferToImage( opts.frameWidth, opts.frameHeight, strName_);
             }
             SDL_GL_SwapBuffers();
             frames++;
-            if( frames >= opts.numberOfFrames ) {
-                cout << "Max number of frames " << frames << "reached. Exiting. " << endl;
+            if( (idx_stamp+1) >= opts.numberOfFrames ) {
+                cout << "Max number of frames " << (1+idx_stamp) << "reached. Exiting. " << endl;
                 return 0;
             }
         }

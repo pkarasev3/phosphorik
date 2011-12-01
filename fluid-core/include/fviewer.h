@@ -35,6 +35,7 @@ public:
     std::vector<std::string> fire_modes;
     fire_modes.push_back("off");
     fire_modes.push_back("on");
+    fire_modes.push_back("frozen");
     return fire_modes;
   }
   /** return vector of allowed strings for toggling how rigid drawing behaves */
@@ -42,6 +43,7 @@ public:
     std::vector<std::string> rigid_modes;
     rigid_modes.push_back("circle");
     rigid_modes.push_back("line");
+    rigid_modes.push_back("off");
     return rigid_modes;
   }
 
