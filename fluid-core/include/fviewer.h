@@ -13,14 +13,17 @@
 
 struct TextureOptions
 {
-  TextureOptions():scale_bgnd_x(1.0),scale_bgnd_y(1.0),cam_dist(5.0), rigid_speed(0.5){ }
+    TextureOptions():scale_bgnd_x(1.0),scale_bgnd_y(1.0),cam_dist(5.0),
+        rigid_speed(0.5),fieldOfViewAngle(45.0) { }
   double scale_bgnd_x;
   double scale_bgnd_y;
   double cam_dist;
   double rigid_speed;
+  double rotate_obj_speed;
   double rigid_scale;
   double brightness;
   double bgnd_alpha;
+  double fieldOfViewAngle;
   bool   blend;
   std::vector<std::string> texNames;
   std::string fire_disp_mode;
@@ -51,7 +54,7 @@ private:
   TextureOptions tex_draw_opts;
   GLuint texture1;
   GLuint texture2;
-  float theta;
+  float theta,phi;
   int _sx, _sy;			// screen width and height
 	int _ax, _ay;			// mouse movement anchor
 

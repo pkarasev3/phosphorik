@@ -174,6 +174,7 @@ FViewer::FViewer(const TextureOptions& opts)
         cout << "loaded " << texNames[1] << endl;
     }
     theta   = 0.0;
+    phi     = 0.0;
 
 
 }
@@ -356,13 +357,19 @@ void FViewer::draw(void)
     {
         glPushMatrix();
         {
-            // draw circle-like pattern
-            glRotatef( theta, 0.0f, 0.0f, 1.0f );
-            glTranslatef( tex_draw_opts.rigid_scale, -tex_draw_opts.rigid_scale, 0.0 );
-            glRotatef( theta, 0.0,0.0, 1.0 );
-            theta += tex_draw_opts.rigid_speed; //increment the rotation
+
+            glRotatef( phi, 0.0f, 0.0f, 1.0f ); // rotate by phi
+
+            float tx = sin( theta * CV_PI / 180.0 ) * tex_draw_opts.rigid_scale;
+            glTranslatef( tx, 0.0, 0.0 );       // translate by tx
+
+            theta += tex_draw_opts.rigid_speed; //increment the translation
+            phi   += tex_draw_opts.rotate_obj_speed; //increment the rotation
             if( theta > 180.0 ) {
                 theta = theta - 360.0;
+            }
+            if( phi > 180.0 ) {
+                phi = phi - 360.0;
             }
 
             glPushMatrix();
@@ -422,7 +429,7 @@ void FViewer::draw_cube(void)
 
     glPushMatrix(); // Draw background
     glScaled(tex_draw_opts.scale_bgnd_x,tex_draw_opts.scale_bgnd_y,1.0);
-    glTranslatef( 0.0, 0.0, 2.0 );
+    glTranslatef( 0.0, 0.0, 0.0 ); // shift things relative to background
     glColor3f( 1.0, 1.0, 1.0 );
     glBindTexture( GL_TEXTURE_2D, texture1 );
     glBegin( GL_QUADS );
@@ -433,35 +440,35 @@ void FViewer::draw_cube(void)
     glEnd();
     glPopMatrix();
 
-    for( int hack = 0; hack < 5 ; hack++ ) {
-        glBlendFunc(GL_SRC_COLOR, GL_ONE);
-        if( image_textures.size() >= 2 ) {
-            //glDisable(GL_BLEND);
-            glPushMatrix();
-            if( 0 == tex_draw_opts.rigid_disp_mode.compare("line") )
-            {
-                float tx = sin( theta * CV_PI / 180.0 ) * tex_draw_opts.rigid_scale;
-                glTranslatef( tx, 1.0, 0.0 );
-            }
-            else
-            { // draw circle-like pattern
-                glRotatef( theta, 0.0f, 0.0f, 1.0f );
-                glTranslatef( tex_draw_opts.rigid_scale, -tex_draw_opts.rigid_scale, 0.0 );
-                glRotatef( theta, 0.0,0.0, 1.0 );
-            }
 
-            glColor3f( 1.0, 1.0, 1.0 );
-            glBindTexture( GL_TEXTURE_2D, texture2 );
-            glBegin( GL_QUADS );
-            glTexCoord2d(0.0,0.0); glVertex3f(-1.0,-1.0,0.0);
-            glTexCoord2d(1.0,0.0); glVertex3f(+1.0,-1.0,0.0);
-            glTexCoord2d(1.0,1.0); glVertex3f(+1.0,+1.0,0.0);
-            glTexCoord2d(0.0,1.0); glVertex3f(-1.0,+1.0,0.0);
-            glEnd();
-            glPopMatrix();
-            // glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_COLOR, GL_ONE);
+    if( image_textures.size() >= 2 ) {
+        //glDisable(GL_BLEND);
+        glPushMatrix();
+        if( 0 == tex_draw_opts.rigid_disp_mode.compare("line") )
+        {
+            float tx = sin( theta * CV_PI / 180.0 ) * tex_draw_opts.rigid_scale;
+            glTranslatef( tx, 1.0, 0.0 );
         }
+        else
+        { // draw circle-like pattern
+            glRotatef( theta, 0.0f, 0.0f, 1.0f );
+            glTranslatef( tex_draw_opts.rigid_scale, -tex_draw_opts.rigid_scale, 0.0 );
+            glRotatef( theta, 0.0,0.0, 1.0 );
+        }
+
+        glColor3f( 1.0, 1.0, 1.0 );
+        glBindTexture( GL_TEXTURE_2D, texture2 );
+        glBegin( GL_QUADS );
+        glTexCoord2d(0.0,0.0); glVertex3f(-1.0,-1.0,0.0);
+        glTexCoord2d(1.0,0.0); glVertex3f(+1.0,-1.0,0.0);
+        glTexCoord2d(1.0,1.0); glVertex3f(+1.0,+1.0,0.0);
+        glTexCoord2d(0.0,1.0); glVertex3f(-1.0,+1.0,0.0);
+        glEnd();
+        glPopMatrix();
+        // glEnable(GL_BLEND);
     }
+
     glDisable(GL_TEXTURE_2D);
     glDisable(GL_DEPTH_TEST);
 
@@ -619,7 +626,7 @@ void FViewer::viewport(int w, int h)
     glGetDoublev(GL_PROJECTION_MATRIX, _ortho_m);
 
     glLoadIdentity();
-    gluPerspective(45.0 /* fov */,
+    gluPerspective(tex_draw_opts.fieldOfViewAngle /* fov */,
                    (GLdouble) w/h /* aspect ratio */,
                    0.01 /* zNear */,
                    30.0 /* zFar */

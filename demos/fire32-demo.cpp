@@ -68,6 +68,7 @@ struct Options {
     string rigid_disp_mode;
     string directory_to_save_in;
     double rigid_obj_speed;
+    double rotate_obj_speed;
     double rigid_obj_scale;
     double cam_to_bgnd_scaleX;
     double cam_to_bgnd_scaleY;
@@ -77,6 +78,8 @@ struct Options {
     int    numberOfFrames;
     double bgnd_alpha;
     int    indexOfFrozenFire;
+    double fieldOfViewAngle;
+
     vector<string> fire_modes;
     vector<string> rigid_modes;
 };
@@ -94,11 +97,13 @@ int options(int ac, char ** av, Options& opts) {
             ("background,b", po::value<string>(&opts.background_image)->default_value(""),"filename for background image")
             ("rigidobject,r", po::value<string>(&opts.rigid_obj_image)->default_value(""),"filename for rigid motion image")
             ("rigidSpeed,R", po::value<double>(&opts.rigid_obj_speed)->default_value(1.0),"speed factor for rigid motion")
+            ("rotateSpeed,p", po::value<double>(&opts.rotate_obj_speed)->default_value(0.0),"rotate speed factor for rigid/Eis-Feuer motion")
             ("rigidScale,L", po::value<double>(&opts.rigid_obj_scale)->default_value(1.0),"scale factor for rigid motion")
             ("distance,d", po::value<double>(&opts.cam_to_fire_dist)->default_value(5.0),"range to fire origin")
             ("scale_bgndX,X", po::value<double>(&opts.cam_to_bgnd_scaleX)->default_value(10.0),"scale of background origin, X")
             ("scale_bgndY,Y", po::value<double>(&opts.cam_to_bgnd_scaleY)->default_value(10.0),"scale of background origin, Y")
             ("max_brightness,q", po::value<double>(&opts.brightness)->default_value(0.15),"max brightness value")
+            ("fieldOfViewAngle,V", po::value<double>(&opts.fieldOfViewAngle)->default_value(45.0),"field of view angle. пожар! ")
             ("background_alpha,a", po::value<double>(&opts.bgnd_alpha)->default_value(0.7),"background alpha [0,1]")
             ("infodisplay,i", po::value<string>(&opts.show_info)->default_value(""),"show fps, #frames info at top")
             ("firedisplaymode,F", po::value<string>(&opts.fire_disp_mode)->default_value("on"),"mode of fire display")
@@ -248,12 +253,14 @@ bool init(void)
     tex_opts.scale_bgnd_x    = opts.cam_to_bgnd_scaleX;
     tex_opts.scale_bgnd_y    = opts.cam_to_bgnd_scaleY;
     tex_opts.rigid_speed     = opts.rigid_obj_speed;
+    tex_opts.rotate_obj_speed= opts.rotate_obj_speed;
     tex_opts.rigid_scale     = opts.rigid_obj_scale;
     tex_opts.fire_disp_mode  = opts.fire_disp_mode;
     tex_opts.rigid_disp_mode = opts.rigid_disp_mode;
     tex_opts.blend           = opts.blend;
     tex_opts.brightness      = opts.brightness;
     tex_opts.bgnd_alpha      = opts.bgnd_alpha;
+    tex_opts.fieldOfViewAngle= opts.fieldOfViewAngle;
 
     cout << "opts.brightness = " << opts.brightness << endl;
 
