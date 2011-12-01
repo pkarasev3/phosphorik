@@ -479,7 +479,7 @@ int EventLoop(FILE* fp)
             stm << idx_stamp;
             std::string strName = stm.str();
             iDrawTexFlipSign *= -1;
-            while( strName.size() < 6 )
+            while( strName.size() < 8 )
                 strName.insert( strName.begin(), '0' );
             string tmp = opts.directory_to_save_in;
             if( tmp[tmp.size()-1] != '/' ) {
