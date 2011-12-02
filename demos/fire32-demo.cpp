@@ -143,7 +143,7 @@ Fluid* fluid = NULL;
 FViewer* viewer = NULL;
 
 char infostring[256];
-int frames = 0, simframes = 0;
+int frames = -1, simframes = 0;
 float fps = 0.0f, sfps = 0.0f;
 GLuint texture;
 
@@ -463,6 +463,7 @@ int EventLoop(FILE* fp)
                 if( frames < opts.indexOfFrozenFire )
                     viewer->load_frame();
             }
+            frames++;
             redraw = true;
             update = wasupdate;
             wasupdate = false;
@@ -497,7 +498,7 @@ int EventLoop(FILE* fp)
                     SaveBufferToImage( opts.frameWidth, opts.frameHeight, strName_);
             }
             SDL_GL_SwapBuffers();
-            frames++;
+
             if( (idx_stamp+1) >= opts.numberOfFrames ) {
                 cout << "Max number of frames " << (1+idx_stamp) << "reached. Exiting. " << endl;
                 return 0;
@@ -510,7 +511,7 @@ int EventLoop(FILE* fp)
 
 struct FireDemoParams
 { // TODO: all demo params go in here
-    FireDemoParams() : timer_msec(5.0) { }
+    FireDemoParams() : timer_msec(1.0) { }
 
     int init_from_args(int argc, char* argv[] ) {
         return 0;
