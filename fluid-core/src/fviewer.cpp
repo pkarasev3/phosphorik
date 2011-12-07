@@ -332,7 +332,7 @@ void FViewer::print_string(char* s)
 }
 
 namespace {
-  double dMotionSign = 1.0;
+double dMotionSign = 1.0;
 }
 void FViewer::draw(void)
 {
@@ -475,11 +475,12 @@ void FViewer::draw_cube(void)
     glDisable(GL_TEXTURE_2D);
     glDisable(GL_DEPTH_TEST);
 
-    theta += tex_draw_opts.rigid_speed; //increment the rotation
-    if( theta > 180.0 ) {
-        theta = theta - 360.0;
+    if( 0 != tex_draw_opts.rigid_disp_mode.compare("off") ) {
+        theta += tex_draw_opts.rigid_speed; //increment the rotation
+        if( theta > 180.0 ) {
+            theta = theta - 360.0;
+        }
     }
-
 }
 
 
