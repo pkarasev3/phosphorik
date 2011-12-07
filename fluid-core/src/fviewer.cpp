@@ -331,7 +331,9 @@ void FViewer::print_string(char* s)
     }
 }
 
-
+namespace {
+  double dMotionSign = 1.0;
+}
 void FViewer::draw(void)
 {
     int i;
@@ -359,14 +361,15 @@ void FViewer::draw(void)
         {
 
             glRotatef( phi, 0.0f, 0.0f, 1.0f ); // rotate by phi
-
-            float tx = sin( theta * CV_PI / 180.0 ) * tex_draw_opts.rigid_scale;
+            double vx=dMotionSign*( theta * CV_PI / 180.0 );
+            float tx = vx * tex_draw_opts.rigid_scale;
             glTranslatef( tx, 0.0, 0.0 );       // translate by tx
 
             theta += tex_draw_opts.rigid_speed; //increment the translation
             phi   += tex_draw_opts.rotate_obj_speed; //increment the rotation
             if( theta > 180.0 ) {
                 theta = theta - 360.0;
+                dMotionSign *= -1.0;
             }
             if( phi > 180.0 ) {
                 phi = phi - 360.0;
