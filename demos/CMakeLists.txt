@@ -9,5 +9,5 @@ add_executable(fire32-demo  fire32-demo.cpp )
 target_link_libraries(fire32-demo fluid-core  ${Boost_LIBRARIES}
                                  ${OpenCV_LIBS} ${CORE3DLIBS} ${SDL_LIBS} )
 
-add_executable(compute-OpticalFlow-demo  compute-OpticalFlow-demo.cpp )
-target_link_libraries(compute-OpticalFlow-demo ${Boost_LIBRARIES} ${OpenCV_LIBS} )
+#add_executable(compute-OpticalFlow-demo  compute-OpticalFlow-demo.cpp )
+#target_link_libraries(compute-OpticalFlow-demo ${Boost_LIBRARIES} ${OpenCV_LIBS} )

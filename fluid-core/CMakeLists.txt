@@ -2,6 +2,10 @@ link_directories(  ${CMAKE_SOURCE_DIR}/lib )
 include_directories(${CMAKE_SOURCE_DIR}/getopt)
 include_directories(include ${SDL_INCLUDE_DIR}) 
 include_directories(include ${SDL_IMAGE_INCLUDE_DIR}) 
+include_directories(/home/ivan/source/opencv_src/modules/highgui/include/opencv2/)
+
+message(STATUS "    OpenCV_Include_Dir: ${OPENCV_INCLUDE_DIR}")
+message(STATUS "    include_var:        ${include}")
 
 file(GLOB fluid_sources src/*.cpp src/*.c )
 file(GLOB fluid_headers include/*.h include/*.hpp)

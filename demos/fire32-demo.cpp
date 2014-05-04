@@ -11,7 +11,10 @@
 #include <list>
 
 // opencv dev branch
+#include <opencv2/imgproc/imgproc_c.h>
+#include <opencv2/imgproc/types_c.h>
 #include <opencv2/highgui/highgui.hpp>
+#include <opencv2/highgui/highgui_c.h>
 #include <opencv2/core/core.hpp>
 #include <boost/program_options.hpp>
 #include <boost/lexical_cast.hpp>
@@ -172,7 +175,7 @@ void GetBuffer(int w, int h, int idx, CvMat* result)
             uchar r = (uchar) pixels[k];
             uchar g = (uchar) pixels[k+1];
             uchar b = (uchar) pixels[k+2];
-            CvScalar scalar = cvScalar(b,g,r);
+            cv::Scalar scalar = cvScalar(b,g,r);
             cvSet2D(result,i,j,scalar);
             k+=3;
         }

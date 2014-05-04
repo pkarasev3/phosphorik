@@ -20,6 +20,7 @@
 #include <opencv2/core/core.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/video/tracking.hpp>
+#include <opencv2/imgproc/types_c.h>
 #include <boost/program_options.hpp>
 #include <boost/lexical_cast.hpp>
 #include <boost/filesystem.hpp>
